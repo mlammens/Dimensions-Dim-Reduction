@@ -54,7 +54,10 @@ source( "/Users/mlammens/Dropbox/UConn-PostDoc/Projects/Dimensions-GCFR/Dimensio
 ## Get protea location climate values
 protea_clim <- 
   Util_ExtractPoints_WilsonSummary( lon = protea_df$LONGITUDE, lat = protea_df$LATITUDE )
-protea_clim <- protea_clim[ clim_vars ]
+## Write the climate dataset to file
+write.csv( protea_clim, file = "protea_clim.csv", row.names = FALSE )
+
+#protea_clim <- protea_clim[ clim_vars ]
 
 ## Scale the climate variables
 protea_clim <- scale( protea_clim )
@@ -106,7 +109,7 @@ n.thin <- 10
 jags.par <-
   c( "mu", "beta" )
 
-fit <- 
+fit.lma <- 
   jags( data = jags.data,
         inits = NULL,
         parameters = jags.par,
@@ -119,8 +122,108 @@ fit <-
         working.directory = "." )
 
 ## Get model output
-mu.mean <- fit$BUGSoutput$mean$mu
-mu <- fit$BUGSoutput$sims.list$mu
-beta <- fit$BUGSoutput$mean$beta
-rownames( beta ) <- clim_vars
+lma.mu.mean <- fit.lma$BUGSoutput$mean$mu
+lma.mu <- fit.lma$BUGSoutput$sims.list$mu
+lma.beta.mean <- fit.lma$BUGSoutput$mean$beta
+rownames( lma.beta.mean ) <- clim_vars
+lma.beta <- fit.lma$BUGSoutput$sims.list$beta
+lma.beta <- as.data.frame( lma.beta )
+names( lma.beta ) <- clim_vars
 
+## Look at boxplots
+ggplot( data = melt( lma.beta ),
+        aes( x = variable, y = value ) ) +
+  geom_boxplot() +
+  xlab( "Climate predictor variable" ) +
+  ylab( "Regression coefficient" )
+
+## Look at density pltos
+ggplot( data = melt( lma.beta ),
+        aes( x = value ) ) +
+  geom_density() +
+  facet_wrap( ~variable ) +
+  ylab( "Beta value" )
+
+## -------------------------------------------------------------------- ##
+## Run Curtis and Ghosh model using Canopy and all climate values
+## -------------------------------------------------------------------- ##
+
+## Re-define "y"
+y <- protea_df$Canopy_area
+
+fit.canopy <- 
+  jags( data = jags.data,
+        inits = NULL,
+        parameters = jags.par,
+        model.file = model.file, 
+        n.chains = n.chains,
+        n.burnin = n.burnin,
+        n.iter = n.iter,
+        n.thin = n.thin,
+        DIC = TRUE,
+        working.directory = "." )
+
+## Get model output
+canopy.mu.mean <- fit.canopy$BUGSoutput$mean$mu
+canopy.mu <- fit.canopy$BUGSoutput$sims.list$mu
+canopy.beta.mean <- fit.canopy$BUGSoutput$mean$beta
+rownames( canopy.beta.mean ) <- clim_vars
+canopy.beta <- fit.canopy$BUGSoutput$sims.list$beta
+canopy.beta <- as.data.frame( canopy.beta )
+names( canopy.beta ) <- clim_vars
+
+## Look at boxplots
+ggplot( data = melt( canopy.beta ),
+        aes( x = variable, y = value ) ) +
+  geom_boxplot() +
+  xlab( "Climate predictor variable" ) +
+  ylab( "Regression coefficient" )
+
+## Look at density pltos
+ggplot( data = melt( canopy.beta ),
+        aes( x = value ) ) +
+  geom_density() +
+  facet_wrap( ~variable ) +
+  ylab( "Beta value" )
+
+## -------------------------------------------------------------------- ##
+## Run Curtis and Ghosh model using Canopy and all climate values
+## -------------------------------------------------------------------- ##
+
+## Re-define "y"
+y <- protea_df$LWratio
+
+fit.lwr <- 
+  jags( data = jags.data,
+        inits = NULL,
+        parameters = jags.par,
+        model.file = model.file, 
+        n.chains = n.chains,
+        n.burnin = n.burnin,
+        n.iter = n.iter,
+        n.thin = n.thin,
+        DIC = TRUE,
+        working.directory = "." )
+
+## Get model output
+lwr.mu.mean <- fit.lwr$BUGSoutput$mean$mu
+lwr.mu <- fit.lwr$BUGSoutput$sims.list$mu
+lwr.beta.mean <- fit.lwr$BUGSoutput$mean$beta
+rownames( lwr.beta.mean ) <- clim_vars
+lwr.beta <- fit.lwr$BUGSoutput$sims.list$beta
+lwr.beta <- as.data.frame( lwr.beta )
+names( lwr.beta ) <- clim_vars
+
+## Look at boxplots
+ggplot( data = melt( lwr.beta ),
+        aes( x = variable, y = value ) ) +
+  geom_boxplot() +
+  xlab( "Climate predictor variable" ) +
+  ylab( "Regression coefficient" )
+
+## Look at density pltos
+ggplot( data = melt( lwr.beta ),
+        aes( x = value ) ) +
+  geom_density() +
+  facet_wrap( ~variable ) +
+  ylab( "Beta value" )
