@@ -52,10 +52,11 @@ pel_df <- read.csv( "/Users/mlammens/Dropbox/UConn-PostDoc/Projects/Dimensions-G
 source( "/Users/mlammens/Dropbox/UConn-PostDoc/Projects/Dimensions-GCFR/Dimensions-Data/scripts/Util_ExtractPoints_WilsonSummary.r" )
 
 ## Get protea location climate values
-protea_clim <- 
-  Util_ExtractPoints_WilsonSummary( lon = protea_df$LONGITUDE, lat = protea_df$LATITUDE )
+#protea_clim <- 
+#  Util_ExtractPoints_WilsonSummary( lon = protea_df$LONGITUDE, lat = protea_df$LATITUDE )
 ## Write the climate dataset to file
-write.csv( protea_clim, file = "protea_clim.csv", row.names = FALSE )
+# write.csv( protea_clim, file = "protea_clim.csv", row.names = FALSE )
+protea_clim <- read.csv( "protea_clim.csv" )
 
 #protea_clim <- protea_clim[ clim_vars ]
 
