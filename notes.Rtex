@@ -1,0 +1,349 @@
+\documentclass[12pt]{article}
+
+\usepackage{bm}
+\usepackage{mathrsfs}
+\usepackage{verbatim}
+\usepackage{floatrow}
+\floatsetup[table]{font=small}
+
+%% for inline R code: if the inline code is not correctly parsed,
+%% you will see a message
+\newcommand{\rinline}[1]{SOMETHING WRONG WITH knitr}
+
+%% begin.rcode setup, include=FALSE
+% opts_chunk$set(tidy=TRUE, tidy.opts=list(width.cutoff=45,
+%                                          reindent.spaces=2))
+%% end.rcode
+
+\begin{document}
+
+\title{Notes on the Curtis-Ghosh method}
+
+\maketitle
+
+\section*{Identifiability and label-switching}
+
+The model in Curtis \& Ghosh is initially described as follows:
+\begin{eqnarray*}
+Y_i|\bm{\beta},\sigma^2 &\sim& \mbox{N}(\bm{x}_i^T\bm{\beta}, \sigma^2) \\
+\beta_j &=& \gamma_j\theta_j \\
+\gamma_j &\sim& \mbox{Bern}(\pi) \\
+\theta_j|\mathscr{P} &\sim& \mathscr{P}(\cdot) \\
+\mathscr{P} &\sim& \mbox{DP}\left(\alpha, \Phi_{0,\eta^2}(\cdot)\right) \\
+\pi &\sim& \mbox{Unif}(0, 1) \\
+\sigma^2 &\sim& \mbox{InvGam}(a_\sigma, b_\sigma) \\
+\eta^2 &\sim& \mbox{InvGam}(a_\eta, b_\eta) \quad .
+\end{eqnarray*}
+The implementation they provide approximates the Dirichlet process
+prior with a discrete Dirichlet prior as follows:
+\begin{eqnarray*}
+Y_i|\bm{\beta},\sigma^2 &\sim& \mbox{N}(\bm{x}_i^T\bm{\beta}, \sigma^2) \\
+\beta_j &=& \gamma_j\xi_{S_j} \\
+\gamma_j &\sim& \mbox{Bern}(\pi) \\
+S_j &\sim& \mbox{Multinom}(p_1,\dots,p_M) \\
+\xi_j|\eta^2 &\sim& \mbox{N}(0, \eta^2) \\
+(p_1,\dots,p_M) &\sim& \mbox{Dirichlet}(\alpha/M,\dots,\alpha/M) \\
+\pi &\sim& \mbox{Unif}(0, 1) \\
+\sigma^2 &\sim& \mbox{InvGam}(a_\sigma, b_\sigma) \\
+\eta^2 &\sim& \mbox{InvGam}(a_\eta, b_\eta) \quad .
+\end{eqnarray*}
+Here's why I think there's a label-switching problem.
+
+Let $\xi_j = \nu_j$, $j=1,\dots,M$, where $\nu_j$ are fixed
+constants. Now simultaneously permute the $\xi_j$ and the $p_j$ so
+that $\xi_{j'} = \nu_j$ and $p_{j'} = p_j$, $j=1,\dots,M$, and
+$j'=1,\dots,M$. The distribution of $\xi_j$ is identical under the two
+permutations, meaning that permutations are non-identifiable although
+$\xi_j$ and $p_j$ are still identifiable. In other words, if we switch
+the labeling of the clusters, the posterior remains unchanged. That's
+the label-switching problem.
+
+Here's some evidence that it is a problem. Matt drew the bulk of this
+code from the Curtis and Ghosh paper. First, the R script that sets up
+the data and extracts the results after {\tt JAGS} has run.
+
+\verbatiminput{curtis_ghosh_example.R}
+
+\noindent Now the {\tt JAGS} script that runs the analysis.
+
+\verbatiminput{curtis_ghosh_example.jags}
+
+\noindent Notice that in the last lines of the R code, I'm extracting
+the cluster identity for the second covariate, $Ed$, and the
+probability that it is included in the model at each MCMC
+iteration. Let's look at how the cluster identity changes over
+iterations when $Ed$ is included in the model, i.e., when $\gamma_2 >
+0$.
+
+%% begin.rcode
+require(reshape2)
+require(ggplot2)
+
+prepare <- function (S, gamma, theta) {
+  ## first column will contain only NA, so remove it
+  ##
+  S <- t(S)[,-1]
+  gamma <- t(gamma)[,-1]
+  theta <- t(theta)[,-1]
+
+  ## Bad form: hardcoded for 4 replicates
+  ##
+  colnames(S) <- c("1", "2", "3", "4")
+  colnames(gamma) <- c("1", "2", "3", "4")
+  colnames(theta) <- c("1", "2", "3", "4")
+
+  ## convert to long form
+  ##
+  S.long <- melt(S)
+  gamma.long <- melt(gamma)
+  theta.long <- melt(theta)
+  colnames(S.long) <- c("Iteration", "Replicate", "Cluster")
+  colnames(gamma.long) <- c("Iteration", "Replicate", "Included")
+  colnames(theta.long) <- c("Iteration", "Replicate", "theta")
+  ## merge into one data frame
+  z <- merge(S.long, gamma.long)
+  z <- merge(z, theta.long)
+  z
+}
+
+anchored <- FALSE
+
+source("curtis_ghosh_example.R")
+
+S.plot <- prepare(S.matrix, gamma.matrix, theta.matrix)
+
+for.plot <- subset(S.plot[,c("Cluster", "Replicate")],
+                   S.plot$Included > 0)
+p <- ggplot(for.plot, aes(x=as.factor(Cluster))) +
+     geom_bar() +
+     xlab("Cluster") +
+     theme(axis.text.x = element_blank(), axis.ticks.x = element_blank()) +
+     facet_wrap(~ Replicate)
+print(p)
+
+for.plot <- subset(S.plot[,c("Replicate", "theta")],
+                   S.plot$Included > 0)
+p <- ggplot(for.plot, aes(x=theta)) +
+     geom_density() +
+     xlab("Coefficient estimate") +
+     facet_wrap(~ Replicate)
+print(p)
+%% end.rcode
+
+It's also worth comparing the posterior mean of $\beta_2$ in each of
+the 4 chains. The mean reported in Table~\ref{table:theta} is
+conditional on the sample having been included in the model at that
+iteration, i.e., $\gamma_1=1$.
+
+%% begin.rcode
+require(xtable)
+
+theta.means <- ddply(for.plot, c("Replicate"), summarize,
+                     mean=mean(theta), sd=sd(theta))
+theta.table <- xtable(theta.means[,-1],
+                      digits=3,
+                      caption="Unanchored",
+                      label="table:theta")
+print(theta.table,
+      file="theta-table.tex")
+%% end.rcode
+
+\input{theta-table}
+
+$\xi_j$ is the mean of the $j$th cluster. If there is label switching
+within a chain, then the means of the clusters that are being switched
+between should be pretty close. Table~\ref{table:xi} shows the posterior
+mean for each of the clusters in each replicate.
+
+%% begin.rcode
+xi.table <- xtable(xi.means,
+                   digits=3,
+                   caption="Unanchored",
+                   label="table:xi")
+print(xi.table,
+      file="xi-table.tex")
+
+fit.unanchored <- fit
+%% end.rcode
+
+\input{xi-table}
+
+Informal experiments, i.e., playing around, suggest that one long run
+with aggressive thinning might avoid the label switching problem. It
+appears that any one chain ``locks in'' to a particular identification
+and doesn't move (much).
+
+\subsection*{Avoiding label switching}
+
+Here's an attempt to avoid (or reduce) the label switching. Rather
+than leaving the cluster assignment completely to {\tt JAGS}, I
+partially ``anchor'' the assignment by hard-coding the coefficient for
+the first covariate as belonging to the first cluster. This is the
+modified {\tt JAGS} code:
+
+\verbatiminput{curtis_ghosh_anchored.jags}
+
+%% begin.rcode
+anchored <- TRUE
+
+source("curtis_ghosh_example.R")
+S.plot <- prepare(S.matrix, gamma.matrix, theta.matrix)
+
+for.plot <- subset(S.plot[,c("Cluster", "Replicate")],
+                   S.plot$Included > 0)
+p <- ggplot(for.plot, aes(x=as.factor(Cluster))) +
+     geom_bar() +
+     xlab("Cluster") +
+     theme(axis.text.x = element_blank(), axis.ticks.x = element_blank()) +
+     facet_wrap(~ Replicate)
+print(p)
+
+for.plot <- subset(S.plot[,c("Replicate", "theta")],
+                   S.plot$Included > 0)
+p <- ggplot(for.plot, aes(x=theta)) +
+     geom_density() +
+     xlab("Coefficient estimate") +
+     facet_wrap(~ Replicate)
+print(p)
+
+%% end.rcode
+
+It's also worth comparing the posterior mean of $\beta_2$ in each of
+the 4 chains. The mean reported in Table~\ref{table:anchored-theta} is
+conditional on the sample having been included in the model at that
+iteration, i.e., $\gamma_1=1$.
+
+%% begin.rcode
+require(xtable)
+
+theta.means <- ddply(for.plot, c("Replicate"), summarize,
+                     mean=mean(theta), sd=sd(theta))
+theta.table <- xtable(theta.means[,-1],
+                      digits=3,
+                      caption="Anchored",
+                      label="table:anchored-theta")
+print(theta.table,
+      file="theta-table-anchored.tex")
+%% end.rcode
+
+\input{theta-table-anchored}
+
+$\xi_j$ is the mean of the $j$th cluster. If there is label switching
+within a chain, then the means of the clusters that are being switched
+between should be pretty close. Table~\ref{table:anchored-xi} shows
+the posterior mean for each of the clusters in each replicate.
+
+%% begin.rcode
+xi.table <- xtable(xi.means,
+                   digits=3,
+                   caption="Anchored",
+                   label="table:anchored-xi")
+print(xi.table,
+      file="xi-table-anchored.tex")
+
+fit.anchored <- fit
+%% end.rcode
+
+\input{xi-table-anchored}
+
+\section*{Summarizing the posterior}
+
+We are interested in identifying those covariates that have similar
+associationss with the response variable. One way of doing so is to
+calculate a dissimilarity coefficient for all pairs of covariates. It
+makes sense to estimate such a coefficient as the posterior mean of a
+dissimilarity coefficient calculated at each step of an MCMC
+simulation. The coefficient calculated at each step should have two
+properties:
+
+\begin{enumerate}
+
+\item It should be equal to 1 unless both coefficients are included in
+the model in that step.
+
+\item It should be equal to $(\mbox{Coeff}1 -
+\mbox{Coeff}2)/(\mbox{Max(Coeff)} - \mbox{Min(Coeff)})$ when both
+coefficients are included.
+
+\end{enumerate}
+
+%% begin.rcode
+dissim.iter <- function(x, gamma.x, y, gamma.y, max.coeff, min.coeff) {
+  sim <- 0
+  ct <- 0
+  for (i in 1:length(x)) {
+    if ((gamma.x[i] > 0) && (gamma.y[i] > 0)) {
+      sim <- sim + abs(x[i] - y[i])/(max.coeff - min.coeff)
+    } else {
+      sim <- sim + 1
+    }
+    ct <- ct + 1
+  }
+  sim <- sim/ct
+  sim
+}
+%% end.rcode
+
+With that code in place, it's just a matter of making all of the
+possible pairwise comparison after setting up the maximum difference
+between coefficient estimates across the entire sample. For now, I'm
+summarizing the result using UPGMA clustering, but we could also use
+the UPGMA clustering to order the variables and use {\tt corplot()} to
+provide a colorful visualization of the whole distance matrix.
+
+%% begin.rcode
+dissim.cluster <- function(fit, label) {
+  max.coeff <- max(fit$BUGSoutput$sims.list$theta)
+  min.coeff <- min(fit$BUGSoutput$sims.list$theta)
+  dissim <- matrix(0,ncol=K, nrow=K)
+  for (i in 2:K) {
+    dissim[i,i] <- 0
+    for (j in 1:(i-1)) {
+      dissim[i,j] <- dissim.iter(fit$BUGSoutput$sims.list$theta[,i],
+                                 fit$BUGSoutput$sims.list$gamma[,i],
+                                 fit$BUGSoutput$sims.list$theta[,j],
+                                 fit$BUGSoutput$sims.list$gamma[,j],
+                                 max.coeff,
+                                 min.coeff)
+      dissim[j,i] <- dissim[i,j]
+    }
+  }
+  colnames(dissim) <- crime.data
+  rownames(dissim) <- crime.data
+  dissim.hclust <- hclust(as.dist(dissim),
+                          method="average")
+  plot(dissim.hclust,
+       main=paste("Covariate clustering for", label),
+       sub="",
+       xlab="",
+       ylab="Dissimilarity")
+  ## return the dissimilarity matrix for later use
+  ##
+  dissim
+}
+%% end.rcode
+
+Alternatively, we could display the results in two dimensions usins
+multidimensional scaling.
+
+%% begin.rcode
+dissim.MDS <- function(dissim, label) {
+  dissim.mds <- cmdscale(dissim)
+  plot(dissim.mds, typ="n", xlab="Axis 1", ylab="Axis 2",
+       main=paste("MDS for ", label))
+  text(dissim.mds, rownames(dissim))
+}
+%% end.rcode
+
+With the functions set up, we can now compare the clustering revealed
+by the two different methods to see if it makes any difference on what
+clusters of covariates we might recognize.
+
+%% begin.rcode
+result <- dissim.cluster(fit.unanchored, "unanchored")
+dissim.MDS(result, "unanchored")
+result <- dissim.cluster(fit.anchored, "anchored")
+dissim.MDS(result, "anchored")
+%% end.rcode
+
+\end{document}

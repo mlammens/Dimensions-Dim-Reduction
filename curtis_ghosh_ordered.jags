@@ -7,7 +7,7 @@ model{
   alpha <- 1
 
   for( j in 1:M ){  # M is adequately large
-    xi[j] ~ dnorm( 0, itausq )
+    xi[j] ~ dnorm( prior.mu[j], itausq )
     a.p[j] <- alpha / M
   }
 
@@ -26,6 +26,6 @@ model{
   sigsq <- 1 / isigsq
 
   # Prior for tausq
-  itausq ~ dgamma (0.1 ,0.1)
+  itausq ~ dexp(prior.itausq)
   tausq <- 1 / itausq
 }

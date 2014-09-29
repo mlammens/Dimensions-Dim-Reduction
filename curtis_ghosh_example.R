@@ -13,6 +13,7 @@
 ## Load necessary packages
 library( R2jags )
 library( MASS )
+library( plyr )
 library( dplyr )
 library( car )
 
@@ -89,20 +90,28 @@ jags.data <-
   c( "X", "n.samp", "M", "K", "y" )
 
 ## Set model file
-model.file <- "curtis_ghosh_example.jags"
+if (anchored) {
+  model.file <- "curtis_ghosh_anchored.jags"
+} else {
+  model.file <- "curtis_ghosh_example.jags"
+}
 
 ## Set JAGs parameters
-n.chains <- 5
-n.burnin <- 1000
-n.iter <- 5000
-n.thin <- 5
+n.chains <- 4
+n.burnin <- 5*10000
+n.iter <- 5*72500
+n.thin <- 5*50
 
 jags.par <-
-  c( "beta", "gamma", "S" )
+  c( "beta", "gamma", "S", "theta", "xi" )
 
-gamma.matrix <- matrix(ncol=length(colnames(X)))
+gamma.matrix <- matrix(ncol=n.chains*(n.iter-n.burnin)/n.thin)
+theta.matrix <- matrix(ncol=n.chains*(n.iter-n.burnin)/n.thin)
 S.matrix <- matrix(ncol=n.chains*(n.iter-n.burnin)/n.thin)
+xi.array <- array(dim=c(4,M,n.chains*(n.iter-n.burnin)/n.thin))
 for (i in 1:4) {
+  sink("temp.txt",
+       append=TRUE)
   fit <-
     jags( data = jags.data,
          inits = NULL,
@@ -114,6 +123,7 @@ for (i in 1:4) {
          n.thin = n.thin,
          DIC = TRUE,
          working.directory = "." )
+  sink()
 
   sink("curtis-ghosh-results.txt", append=TRUE)
   old.opt <- options(width=180)
@@ -122,27 +132,18 @@ for (i in 1:4) {
   cat("\n\n\n")
   sink()
 
-  gamma <- fit$BUGSoutput$mean$gamma
-  names(gamma) <- colnames(X)
+  gamma <- fit$BUGSoutput$sims.list$gamma[,2]
   gamma.matrix <- rbind(gamma.matrix, gamma)
 
-  S <- fit$BUGSoutput$sims.list$S[,1]
+  theta <- fit$BUGSoutput$sims.list$theta[,2]
+  theta.matrix <- rbind(theta.matrix, theta)
+
+  S <- fit$BUGSoutput$sims.list$S[,2]
   S.matrix <- rbind(S.matrix, S)
+
+  xi.array[i,,] <- fit$BUGSoutput$sims.list$xi
 }
 
-pdf("gammas.pdf")
-par(mfrow=c(2,2))
-for (i in 1:4) {
-  barplot(1-gamma.matrix[i+1,], las=2)
-  abline(h=0.5, col="red")
-  title(main="Inclusion probability")
-}
-dev.off()
-
-pdf("clusters.pdf")
-par(mfrow=c(2,2))
-for (i in 1:4) {
-  hist(S.matrix[i+1,], main="Cluster identity", breaks=39)
-}
-dev.off()
-
+xi.matrix <- matrix(nrow=dim(xi.array)[1], ncol=dim(xi.array)[2])
+xi.means <- t(aaply(xi.array, c(1,2), mean))
+colnames(xi.means) <- paste("Replicate", colnames(xi.means))

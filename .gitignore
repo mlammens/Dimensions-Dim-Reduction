@@ -1,3 +1,21 @@
+## LaTeX files to ignore
+##
+*.aux
+*.log
+*.synctex.gz
+
+## ignore figure directory from knitr()
+##
+figure*
+
+## Miscellaneous files to ignore
+##
+temp.txt
+*~
+
+## R files to ignore
+##
+.Rapp.history
 .Rproj.user
 .Rhistory
 .RData
