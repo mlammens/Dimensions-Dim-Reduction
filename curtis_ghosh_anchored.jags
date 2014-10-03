@@ -11,8 +11,11 @@ model{
     a.p[j] <- alpha / M
   }
 
-  for( j in 1:K ){  # K is the number of regression coefficients
+  S[1] <- 1
+  for (j in 2:K) {
     S[j] ~ dcat( p[1:M] )
+  }
+  for( j in 1:K ){  # K is the number of regression coefficients
     theta[j] <- xi[ S[j] ]
     gamma[j] ~ dbern( pi )
     beta[j] <- theta[j] * gamma[j]

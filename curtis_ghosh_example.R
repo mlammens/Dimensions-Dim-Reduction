@@ -5,7 +5,7 @@
 ## Date Created: 2014-07-07
 ##
 ## Purpose:
-## Re-run the analyis example using Ehrlich Crime Data presented in 
+## Re-run the analyis example using Ehrlich Crime Data presented in
 ## Curtis and Ghosh 2011 J. Stat. Theory and Practice.
 ##
 ## ******************************************************************** ##
@@ -13,13 +13,23 @@
 ## Load necessary packages
 library( R2jags )
 library( MASS )
+library( plyr )
 library( dplyr )
 library( car )
 
-## Load data set
-crime <- UScrime 
+standardize <- function(x) {
+  if (is.numeric(x)) {
+    y <- (x - mean(x, na.rm=TRUE))/sd(x, na.rm=TRUE)
+  } else {
+    y <- x
+  }
+  y
+}
 
-## Log-transform variables, as Curtis and Ghosh did. 
+## Load data set
+crime <- UScrime
+
+## Log-transform variables, as Curtis and Ghosh did.
 ## They also dropped So, presumably because it is categorical
 crime <- select( crime, -So )
 crime <- log( crime )
@@ -29,38 +39,38 @@ crime <- log( crime )
 ## -------------------------------------------------------------------- ##
 
 #crime_lm <- lm( formula = y ~  . , data = crime )
-crime_lm <- lm( formula = y ~ -1 + . , data = crime ) ## No intercept model
-summary( crime_lm ) ## *DOES NOT* match results presented in Curtish and Ghosh (w or w/o intercept)
-vif( crime_lm ) ## Needs model *with* interecept to make sense. Approximately matches Curtis and Ghosh
+#crime_lm <- lm( formula = y ~ -1 + . , data = crime ) ## No intercept model
+#summary( crime_lm ) ## *DOES NOT* match results presented in Curtish and Ghosh (w or w/o intercept)
+#vif( crime_lm ) ## Needs model *with* interecept to make sense. Approximately matches Curtis and Ghosh
 
 ## -------------------------------------------------------------------- ##
 ## Construct Curtis and Ghosh Baysian dimension reduction model
 ## -------------------------------------------------------------------- ##
 
 ## Separate predictors into their own vectors
-M <- crime$M
-Ed <- crime$Ed
-Po1 <- crime$Po1
-Po2 <- crime$Po2
-LF <- crime$LF
-M.F <- crime$M.F
-Pop <- crime$Pop
-NW <- crime$NW
-U1 <- crime$U1
-U2 <- crime$U2
-GDP <- crime$GDP
-Ineq <- crime$Ineq
-Prob <- crime$Prob
-Time <- crime$Time
+M <- standardize(crime$M)
+Ed <- standardize(crime$Ed)
+Po1 <- standardize(crime$Po1)
+Po2 <- standardize(crime$Po2)
+LF <- standardize(crime$LF)
+M.F <- standardize(crime$M.F)
+Pop <- standardize(crime$Pop)
+NW <- standardize(crime$NW)
+U1 <- standardize(crime$U1)
+U2 <- standardize(crime$U2)
+GDP <- standardize(crime$GDP)
+Ineq <- standardize(crime$Ineq)
+Prob <- standardize(crime$Prob)
+Time <- standardize(crime$Time)
 
 ## Define the parameters in a list structure
-crime.data <- 
+crime.data <-
   list( "M", "Ed", "Po1", "Po2", "LF", "M.F",
         "Pop", "NW", "U1", "U2", "GDP", "Ineq",
         "Prob", "Time" )
 
 ## Alternatively extract data as a matrix
-#crime.pred.mat <- 
+#crime.pred.mat <-
 X <-
   as.matrix( select( crime, -y ) )
 
@@ -69,8 +79,8 @@ y <- crime$y
 
 ## Define model settings
 n.samp <- nrow( crime )
-## The next parameter, M, is somewhat arbitrarily set. The authors 
-## write use a "suitably large M", and define it as p + 25, where 
+## The next parameter, M, is somewhat arbitrarily set. The authors
+## write use a "suitably large M", and define it as p + 25, where
 ## p is the number of coefficients in thier examples
 M <- ( ncol( crime ) - 1 ) + 25
 ## Set number of regression coefficients
@@ -80,33 +90,60 @@ jags.data <-
   c( "X", "n.samp", "M", "K", "y" )
 
 ## Set model file
-model.file <- "curtis_ghosh_example.jags"
+if (anchored) {
+  model.file <- "curtis_ghosh_anchored.jags"
+} else {
+  model.file <- "curtis_ghosh_example.jags"
+}
 
 ## Set JAGs parameters
 n.chains <- 4
-n.burnin <- 1000
-n.iter <- 5000
-n.thin <- 10
+n.burnin <- 5*10000
+n.iter <- 5*72500
+n.thin <- 5*50
 
 jags.par <-
-  c( "mu", "beta" )
+  c( "beta", "gamma", "S", "theta", "xi" )
 
-fit <- 
-  jags( data = jags.data,
-        inits = NULL,
-        parameters = jags.par,
-        model.file = model.file, 
-        n.chains = n.chains,
-        n.burnin = n.burnin,
-        n.iter = n.iter,
-        n.thin = n.thin,
-        DIC = TRUE,
-        working.directory = "." )
+gamma.matrix <- matrix(ncol=n.chains*(n.iter-n.burnin)/n.thin)
+theta.matrix <- matrix(ncol=n.chains*(n.iter-n.burnin)/n.thin)
+S.matrix <- matrix(ncol=n.chains*(n.iter-n.burnin)/n.thin)
+xi.array <- array(dim=c(4,M,n.chains*(n.iter-n.burnin)/n.thin))
+for (i in 1:4) {
+  sink("temp.txt",
+       append=TRUE)
+  fit <-
+    jags( data = jags.data,
+         inits = NULL,
+         parameters = jags.par,
+         model.file = model.file,
+         n.chains = n.chains,
+         n.burnin = n.burnin,
+         n.iter = n.iter,
+         n.thin = n.thin,
+         DIC = TRUE,
+         working.directory = "." )
+  sink()
 
-## Get model output
-mu.mean <- fit$BUGSoutput$mean$mu
-mu <- fit$BUGSoutput$sims.list$mu
-beta <- fit$BUGSoutput$mean$beta
-rownames( beta ) <- c( "M", "Ed", "Po1", "Po2", "LF", "M.F",
-                       "Pop", "NW", "U1", "U2", "GDP", "Ineq",
-                       "Prob", "Time" )
+  sink("curtis-ghosh-results.txt", append=TRUE)
+  old.opt <- options(width=180)
+  print(fit, 3)
+  options(old.opt)
+  cat("\n\n\n")
+  sink()
+
+  gamma <- fit$BUGSoutput$sims.list$gamma[,2]
+  gamma.matrix <- rbind(gamma.matrix, gamma)
+
+  theta <- fit$BUGSoutput$sims.list$theta[,2]
+  theta.matrix <- rbind(theta.matrix, theta)
+
+  S <- fit$BUGSoutput$sims.list$S[,2]
+  S.matrix <- rbind(S.matrix, S)
+
+  xi.array[i,,] <- fit$BUGSoutput$sims.list$xi
+}
+
+xi.matrix <- matrix(nrow=dim(xi.array)[1], ncol=dim(xi.array)[2])
+xi.means <- t(aaply(xi.array, c(1,2), mean))
+colnames(xi.means) <- paste("Replicate", colnames(xi.means))
