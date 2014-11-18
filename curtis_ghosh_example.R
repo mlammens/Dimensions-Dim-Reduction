@@ -89,6 +89,8 @@ K <- ncol( crime ) - 1
 jags.data <-
   c( "X", "n.samp", "M", "K", "y" )
 
+anchored = FALSE
+
 ## Set model file
 if (anchored) {
   model.file <- "curtis_ghosh_anchored.jags"
@@ -97,10 +99,13 @@ if (anchored) {
 }
 
 ## Set JAGs parameters
-n.chains <- 4
+n.chains <- 2
 n.burnin <- 5*10000
 n.iter <- 5*72500
 n.thin <- 5*50
+# n.burnin <- 5*1000
+# n.iter <- 5*7250
+# n.thin <- 5*50
 
 jags.par <-
   c( "beta", "gamma", "S", "theta", "xi" )
@@ -109,10 +114,13 @@ gamma.matrix <- matrix(ncol=n.chains*(n.iter-n.burnin)/n.thin)
 theta.matrix <- matrix(ncol=n.chains*(n.iter-n.burnin)/n.thin)
 S.matrix <- matrix(ncol=n.chains*(n.iter-n.burnin)/n.thin)
 xi.array <- array(dim=c(4,M,n.chains*(n.iter-n.burnin)/n.thin))
+
+fit <- vector(mode="list")
+
 for (i in 1:4) {
   sink("temp.txt",
        append=TRUE)
-  fit <-
+  fit[[i]] <-
     jags( data = jags.data,
          inits = NULL,
          parameters = jags.par,
@@ -127,23 +135,42 @@ for (i in 1:4) {
 
   sink("curtis-ghosh-results.txt", append=TRUE)
   old.opt <- options(width=180)
-  print(fit, 3)
+  print(fit[[i]], 3)
   options(old.opt)
   cat("\n\n\n")
   sink()
 
-  gamma <- fit$BUGSoutput$sims.list$gamma[,2]
-  gamma.matrix <- rbind(gamma.matrix, gamma)
+  #gamma <- fit$BUGSoutput$sims.list$gamma[,2]
+  #gamma.matrix <- rbind(gamma.matrix, gamma)
 
-  theta <- fit$BUGSoutput$sims.list$theta[,2]
-  theta.matrix <- rbind(theta.matrix, theta)
+  #theta <- fit$BUGSoutput$sims.list$theta[,2]
+  #theta.matrix <- rbind(theta.matrix, theta)
 
-  S <- fit$BUGSoutput$sims.list$S[,2]
-  S.matrix <- rbind(S.matrix, S)
+  #S <- fit$BUGSoutput$sims.list$S[,2]
+  #S.matrix <- rbind(S.matrix, S)
 
-  xi.array[i,,] <- fit$BUGSoutput$sims.list$xi
+  #xi.array[i,,] <- fit$BUGSoutput$sims.list$xi
 }
 
 xi.matrix <- matrix(nrow=dim(xi.array)[1], ncol=dim(xi.array)[2])
 xi.means <- t(aaply(xi.array, c(1,2), mean))
 colnames(xi.means) <- paste("Replicate", colnames(xi.means))
+
+
+## ******************************************************************** ##
+## Make plots to look at S versus Beta
+## ******************************************************************** ##
+foo <- fit$BUGSoutput$sims.list$beta
+bar <- melt( foo )
+s_melt <- melt( fit$BUGSoutput$sims.list$S )
+bar$S <- s_melt$value
+foobar <- melt( bar, measure.vars = c("value", "S") )
+
+ggplot() + geom_point( data = bar, aes( x = Var1, y = S, colour = factor( Var2 ) ) ) + facet_grid( Var2~.) + xlab( "Iter. sample" ) + ylab( "S" ) + scale_colour_discrete( name = "Coefficient" )
+
+ggplot() + geom_line( data = bar, aes( x = Var1, y = S, colour = factor( Var2 ) ) ) + facet_grid( Var2~.) + xlab( "Iter. sample" ) + ylab( "S" ) + scale_colour_discrete( name = "Coefficient" )
+
+ggplot() + geom_line( data = bar, aes( x = Var1, y = value, colour = factor( Var2 ) ) ) + facet_grid( Var2~.) + xlab( "Iter. sample" ) + ylab( "Beta" ) + scale_colour_discrete( name = "Coefficient" )
+
+ggplot() + geom_point( data = bar, aes( x = S, y = value, colour = factor( Var2 ) ) ) + facet_grid( Var2~. ) + ylab( "Beta" ) + scale_color_discrete( name = "Coefficient" )
+
