@@ -33,7 +33,7 @@ clim_vars <- c("CDD","CFD","CSU","GDD",
 
 ## -------------------------------------------------------------------- ##
 ## Read in Protea data.frame
-protea_df <- read.csv( "/Users/mlammens/Dropbox/UConn-PostDoc/Projects/Dimensions-GCFR/Dimensions---Traits-analysis/Protea_CFR_DATA.csv", na.strings = "." )
+protea_df <- read.csv( "data/Protea_CFR_DATA.csv", na.strings = "." )
 
 prot_trait <- c( "LMA", "Canopy_area", "LWratio", "FWC", 
                  "LDMC", "Succulence", "Height", "lamina_thickness" )
@@ -43,13 +43,13 @@ prot_trait <- c( "LMA", "Canopy_area", "LWratio", "FWC",
 
 ## -------------------------------------------------------------------- ##
 ## Read in Pellie data.frame
-pel_df <- read.csv( "/Users/mlammens/Dropbox/UConn-PostDoc/Projects/Dimensions-GCFR/Dimensions---Traits-analysis/Pel_CFR_2011_2012.csv" )
+pel_df <- read.csv( "data/Pel_CFR_2011_2012.csv" )
 
 ## -------------------------------------------------------------------- ##
 ## Get climate data
 
 ## Source the Extract_Climate_Vars function
-source( "/Users/mlammens/Dropbox/UConn-PostDoc/Projects/Dimensions-GCFR/Dimensions-Data/scripts/Util_ExtractPoints_WilsonSummary.r" )
+# source( "~/Dropbox/UConn-PostDoc/Projects/Dimensions-GCFR/Dimensions-Data/scripts/Util_ExtractPoints_WilsonSummary.r" )
 
 ## Get protea location climate values
 #protea_clim <- 
@@ -73,9 +73,9 @@ protea_df <- cbind( protea_df, protea_clim )
 protea_df[ prot_trait ] <- scale( protea_df[ prot_trait ] )
 
 
-## -------------------------------------------------------------------- ##
+## ******************************************************************** ##
 ## Run Curtis and Ghosh model using LMA and all climate values
-## -------------------------------------------------------------------- ##
+## ******************************************************************** ##
 
 ## Alternatively extract data as a matrix
 #crime.pred.mat <- 
@@ -87,14 +87,16 @@ y <- protea_df$LMA
 
 ## Define model settings
 n.samp <- nrow( protea_df )
+
 ## The next parameter, M, is somewhat arbitrarily set. The authors 
 ## write use a "suitably large M", and define it as p + 25, where 
 ## p is the number of coefficients in thier examples
 M <- ncol( X ) + 25
+
 ## Set number of regression coefficients
 K <- ncol( X )
 
-
+## Define the variable names used for jags data
 jags.data <-
   c( "X", "n.samp", "M", "K", "y" )
 
@@ -103,14 +105,36 @@ model.file <- "curtis_ghosh_example.jags"
 
 ## Set JAGs parameters
 n.chains <- 4
-n.burnin <- 1000
-n.iter <- 5000
-n.thin <- 10
+n.burnin <- 5*10000
+n.iter <- 5*72500
+n.thin <- 5*50
+
+# n.chains <- 2
+# n.burnin <- 5*1000
+# n.iter <- 5*7250
+# n.thin <- 5*5
+
 
 jags.par <-
-  c( "mu", "beta" )
+  c( "beta", "gamma", "S", "theta", "xi" )
 
-fit.lma <- 
+## Using a similar setup as used by Kent Holsinger in our
+## crime data example, below I set **four** separate 
+## jags runs for this model fit.
+## In order to make this run faster, I'll implement a 
+## local cluster.
+
+fit.lma <- vector( mode = "list" )
+
+library( foreach )
+library( doSNOW )
+
+cl <- makeCluster( 4, "SOCK" )
+registerDoSNOW( cl )
+
+fit.lma <- foreach( i = 1:4, .combine = "list", .packages = c("R2jags"), .export = jags.data ) %dopar% {
+  
+  ## Run jags model
   jags( data = jags.data,
         inits = NULL,
         parameters = jags.par,
@@ -121,29 +145,91 @@ fit.lma <-
         n.thin = n.thin,
         DIC = TRUE,
         working.directory = "." )
+  
+}
 
-## Get model output
-lma.mu.mean <- fit.lma$BUGSoutput$mean$mu
-lma.mu <- fit.lma$BUGSoutput$sims.list$mu
-lma.beta.mean <- fit.lma$BUGSoutput$mean$beta
-rownames( lma.beta.mean ) <- clim_vars
-lma.beta <- fit.lma$BUGSoutput$sims.list$beta
-lma.beta <- as.data.frame( lma.beta )
-names( lma.beta ) <- clim_vars
+stopCluster( cl )
 
-## Look at boxplots
-ggplot( data = melt( lma.beta ),
-        aes( x = variable, y = value ) ) +
-  geom_boxplot() +
-  xlab( "Climate predictor variable" ) +
-  ylab( "Regression coefficient" )
 
-## Look at density pltos
-ggplot( data = melt( lma.beta ),
-        aes( x = value ) ) +
-  geom_density() +
-  facet_wrap( ~variable ) +
-  ylab( "Beta value" )
+## -------------------------------------------------------------------- ##
+
+## Get model outputs
+beta.vals <- as.data.frame( fit.lma$BUGSoutput$sims.list$beta )
+gamma.vals <- as.data.frame( fit.lma$BUGSoutput$sims.list$gamma )
+S.vals <- as.data.frame( fit.lma$BUGSoutput$sims.list$S )
+theta.vals <- as.data.frame( fit.lma$BUGSoutput$sims.list$theta )
+xi.vals <- as.data.frame( fit.lma$BUGSoutput$sims.list$xi )
+deviance.vals <- as.data.frame( fit.lma$BUGSoutput$sims.list$deviance )
+
+## Add names of variables, where appropriate
+names( beta.vals ) <- clim_vars
+names( S.vals ) <- clim_vars
+
+## Make plots to look at S versus Beta
+
+## Melt beta matrix
+beta_m <- melt( beta.vals, value.name = "beta", variable.name = "clim_var" )
+
+## Melt S matrix
+S_melt <- melt( S.vals, value.name = "S" )
+
+## Melt the theta matrix
+theta_melt <- melt( theta.vals, value.name = "theta" )
+
+## Combine the melted matrix values
+jags_vals_mat <- beta_m
+jags_vals_mat$S <- S_melt$S
+jags_vals_mat$theta <- theta_melt$theta
+
+## Plot the histograms of beta values
+ggplot() + geom_histogram( data = jags_vals_mat, aes( x = beta, fill = factor( clim_var ) ) ) +
+  facet_wrap( ~clim_var, scales = "free" ) +
+  geom_vline( xintercept = 0, colour = "red" ) +
+  scale_fill_discrete( name = "Clim Var" )
+ggsave( filename = "figures/prot_lma_beta_hist.pdf", units = "in", width = 10, height = 10 )
+
+## Plot the histograms of beta values, faceted by S values
+ggplot() + geom_density( data = jags_vals_mat, aes( x = beta ) ) +
+  facet_wrap( ~ S )
+  #geom_vline( xintercept = 0, colour = "red" ) +
+  #scale_fill_discrete( name = "Clim Var" )
+ggsave( filename = "figures/prot_lma_beta_hist.pdf", units = "in", width = 10, height = 10 )
+
+
+## Plot beta (coeff value) versus S (label ID)
+ggplot() + geom_point( data = jags_vals_mat, aes( x = S, y = beta, colour = factor( clim_var ) ) ) + 
+  facet_grid( clim_var~.) + 
+  xlab( "S" ) + 
+  ylab( "beta" ) + 
+  scale_colour_discrete( name = "Clim Var" )
+ggsave( filename = "figures/prot_lma_beta_vs_S.pdf", units = "in", width = 10, height = 10 )
+
+## Plot theta vesus S
+ggplot() + geom_point( data = jags_vals_mat, aes( x = S, y = theta, colour = factor( clim_var ) ) ) + 
+  facet_grid( clim_var~., scales = "free" ) + 
+  xlab( "S" ) + 
+  ylab( "theta" ) + 
+  scale_colour_discrete( name = "Clim Var" )
+ggsave( filename = "figures/prot_lma_theta_vs_S.pdf", units = "in", width = 10, height = 10 )
+
+## Plot theta vesus beta
+ggplot() + geom_point( data = jags_vals_mat, aes( x = beta, y = theta, colour = factor( clim_var ) ) ) + 
+  facet_grid( clim_var~., scales = "free" ) + 
+  xlab( "beta" ) + 
+  ylab( "theta" ) + 
+  scale_colour_discrete( name = "Clim Var" )
+ggsave( filename = "figures/prot_lma_theta_vs_beta.pdf", units = "in", width = 10, height = 10 )
+
+
+## ******************************************************************** ##
+## ******************************************************************** ##
+### !!! DEVELOPMENT COMMENT !!! ###
+## Need to make all the changes that were carried out above, for the rest
+## of the variables.
+## ******************************************************************** ##
+## ******************************************************************** ##
+
+
 
 ## -------------------------------------------------------------------- ##
 ## Run Curtis and Ghosh model using Canopy and all climate values

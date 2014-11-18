@@ -6,7 +6,7 @@
 
 ## ignore figure directory from knitr()
 ##
-figure*
+figure/*
 
 ## Miscellaneous files to ignore
 ##
