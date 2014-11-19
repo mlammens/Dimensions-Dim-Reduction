@@ -14,12 +14,12 @@ model{
   for( j in 1:K ){  # K is the number of regression coefficients
     S[j] ~ dcat( p[1:M] )
     theta[j] <- xi[ S[j] ]
-    gamma[j] ~ dbern( pi )
+    gamma[j] ~ dbern( pi[j] )
     beta[j] <- theta[j] * gamma[j]
+    pi[j] ~ dunif (0 ,1)
   }
 
   p[1:M] ~ ddirch( a.p[] )
-  pi ~ dunif (0 ,1)
 
   # Prior for sigsq
   isigsq ~ dgamma (0.1 ,0.1)

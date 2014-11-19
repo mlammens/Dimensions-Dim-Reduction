@@ -4,10 +4,6 @@
 *.log
 *.synctex.gz
 
-## ignore PDFs
-##
-*.pdf
-
 ## ignore figure directory from knitr()
 ##
 figure/*

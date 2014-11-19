@@ -99,7 +99,7 @@ if (anchored) {
 }
 
 ## Set JAGs parameters
-n.chains <- 2
+n.chains <- 4
 n.burnin <- 5*10000
 n.iter <- 5*72500
 n.thin <- 5*50
@@ -117,9 +117,9 @@ xi.array <- array(dim=c(4,M,n.chains*(n.iter-n.burnin)/n.thin))
 
 fit <- vector(mode="list")
 
-for (i in 1:4) {
-  sink("temp.txt",
-       append=TRUE)
+for (i in 1:1) {
+##  sink("temp.txt",
+##       append=TRUE)
   fit[[i]] <-
     jags( data = jags.data,
          inits = NULL,
@@ -131,7 +131,7 @@ for (i in 1:4) {
          n.thin = n.thin,
          DIC = TRUE,
          working.directory = "." )
-  sink()
+##  sink()
 
   sink("curtis-ghosh-results.txt", append=TRUE)
   old.opt <- options(width=180)
