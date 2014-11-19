@@ -193,7 +193,7 @@ ggplot() + geom_density( data = jags_vals_mat, aes( x = beta ) ) +
   facet_wrap( ~ S )
   #geom_vline( xintercept = 0, colour = "red" ) +
   #scale_fill_discrete( name = "Clim Var" )
-ggsave( filename = "figures/prot_lma_beta_hist.pdf", units = "in", width = 10, height = 10 )
+ggsave( filename = "figures/prot_lma_beta_hist_by_S.pdf", units = "in", width = 10, height = 10 )
 
 
 ## Plot beta (coeff value) versus S (label ID)

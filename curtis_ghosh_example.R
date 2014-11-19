@@ -156,21 +156,3 @@ xi.matrix <- matrix(nrow=dim(xi.array)[1], ncol=dim(xi.array)[2])
 xi.means <- t(aaply(xi.array, c(1,2), mean))
 colnames(xi.means) <- paste("Replicate", colnames(xi.means))
 
-
-## ******************************************************************** ##
-## Make plots to look at S versus Beta
-## ******************************************************************** ##
-foo <- fit$BUGSoutput$sims.list$beta
-bar <- melt( foo )
-s_melt <- melt( fit$BUGSoutput$sims.list$S )
-bar$S <- s_melt$value
-foobar <- melt( bar, measure.vars = c("value", "S") )
-
-ggplot() + geom_point( data = bar, aes( x = Var1, y = S, colour = factor( Var2 ) ) ) + facet_grid( Var2~.) + xlab( "Iter. sample" ) + ylab( "S" ) + scale_colour_discrete( name = "Coefficient" )
-
-ggplot() + geom_line( data = bar, aes( x = Var1, y = S, colour = factor( Var2 ) ) ) + facet_grid( Var2~.) + xlab( "Iter. sample" ) + ylab( "S" ) + scale_colour_discrete( name = "Coefficient" )
-
-ggplot() + geom_line( data = bar, aes( x = Var1, y = value, colour = factor( Var2 ) ) ) + facet_grid( Var2~.) + xlab( "Iter. sample" ) + ylab( "Beta" ) + scale_colour_discrete( name = "Coefficient" )
-
-ggplot() + geom_point( data = bar, aes( x = S, y = value, colour = factor( Var2 ) ) ) + facet_grid( Var2~. ) + ylab( "Beta" ) + scale_color_discrete( name = "Coefficient" )
-
