@@ -20,7 +20,7 @@ require(data.table)
 require(R2jags)
 
 make_new_clim_df <- FALSE
-use_jags_test_pars <- TRUE
+use_jags_test_pars <- FALSE
 
 ## -------------------------------------------------------------------- ##
 ## Make a vector of the climate variable names
