@@ -19,12 +19,16 @@ require(fields)
 require(data.table)
 require(R2jags)
 
+make_new_clim_df <- FALSE
+use_jags_test_pars <- TRUE
+
 ## -------------------------------------------------------------------- ##
 ## Make a vector of the climate variable names
 clim_vars <- c("CDD","CFD","CSU","GDD",
                "MAP","MMP.07","MMP.01",
                "MAT","MTmin.07","MTmax.01",
-               "rr2","sdii","ratio")
+               "rr2","sdii","ratio",
+               "Elevation", "Insolation")
 #,"SU","FD","MATmax","MATmin","ECAr20mm","MAP",
 
 ## ******************************************************************** ##
@@ -48,15 +52,29 @@ pel_df <- read.csv( "data/Pel_CFR_2011_2012.csv" )
 ## -------------------------------------------------------------------- ##
 ## Get climate data
 
-## Source the Extract_Climate_Vars function
-# source( "~/Dropbox/UConn-PostDoc/Projects/Dimensions-GCFR/Dimensions-Data/scripts/Util_ExtractPoints_WilsonSummary.r" )
+if( make_new_clim_df ){
+  ## Source the Extract_Climate_Vars function
+  source( "~/Dropbox/UConn-PostDoc/Projects/Dimensions-GCFR/Dimensions-Data/scripts/Util_ExtractPoints_WilsonSummary.r" )
+  ## Get protea location climate values
+  protea_clim <- 
+   Util_ExtractPoints_WilsonSummary( lon = protea_df$LONGITUDE, lat = protea_df$LATITUDE )
+  ## Write the climate dataset to file
+  write.csv( protea_clim, file = "protea_clim.csv", row.names = FALSE )
+}
 
-## Get protea location climate values
-#protea_clim <- 
-#  Util_ExtractPoints_WilsonSummary( lon = protea_df$LONGITUDE, lat = protea_df$LATITUDE )
-## Write the climate dataset to file
-# write.csv( protea_clim, file = "protea_clim.csv", row.names = FALSE )
+## Read the saved climate values
 protea_clim <- read.csv( "protea_clim.csv" )
+
+## Read in the additional climate values, from Mitchell et al. 2014
+prot_pel_clim <- read.csv( "data/Protea_Pellie_Climate.csv" )
+
+## Merge the additional cliamte values with the protea_clim data.frame
+# temp <- 
+#   merge( as.data.frame( protea_clim), 
+#          select( prot_pel_clim, LONGITUDE, LATITUDE, Elevation, Insolation ),
+#          by.x = c( "lon", "lat" ),
+#          by.y = c( "LONGITUDE", "LATITUDE" )
+#   )
 
 #protea_clim <- protea_clim[ clim_vars ]
 
@@ -66,6 +84,14 @@ protea_clim <- scale( protea_clim )
 ## Add climate to protea_df
 protea_df <- cbind( protea_df, protea_clim )
 
+## Add solar insulation layers
+protea_df <- 
+  merge( protea_df, select( prot_pel_clim, Site_location, Elevation, Insolation ),
+         by = "Site_location" )
+
+## Scale Elevation and Insolation
+protea_df$Elevation <- scale( protea_df$Elevation )
+protea_df$Insolation <- scale( protea_df$Insolation )
 
 # protea_df <- protea_df[ complete.cases( protea_df ), ]
 
@@ -79,11 +105,10 @@ protea_df[ prot_trait ] <- scale( protea_df[ prot_trait ] )
 
 ## Alternatively extract data as a matrix
 #crime.pred.mat <- 
-X <-
-  as.matrix( protea_df[ clim_vars ] )
+X <- as.matrix( protea_df[ clim_vars ] )
 
 ## Separate response variable into it's own vector
-y <- protea_df$LMA
+#y <- protea_df$LMA
 
 ## Define model settings
 n.samp <- nrow( protea_df )
@@ -104,52 +129,58 @@ jags.data <-
 model.file <- "curtis_ghosh_example.jags"
 
 ## Set JAGs parameters
-n.chains <- 4
-n.burnin <- 5*10000
-n.iter <- 5*72500
-n.thin <- 5*50
-
-# n.chains <- 2
-# n.burnin <- 5*1000
-# n.iter <- 5*7250
-# n.thin <- 5*5
-
-
-jags.par <-
-  c( "beta", "gamma", "S", "theta", "xi" )
-
-## Using a similar setup as used by Kent Holsinger in our
-## crime data example, below I set **four** separate 
-## jags runs for this model fit.
-## In order to make this run faster, I'll implement a 
-## local cluster.
-
-fit.lma <- vector( mode = "list" )
-
-library( foreach )
-library( doSNOW )
-
-cl <- makeCluster( 4, "SOCK" )
-registerDoSNOW( cl )
-
-fit.lma <- foreach( i = 1:4, .combine = "list", .packages = c("R2jags"), .export = jags.data ) %dopar% {
-  
-  ## Run jags model
-  jags( data = jags.data,
-        inits = NULL,
-        parameters = jags.par,
-        model.file = model.file, 
-        n.chains = n.chains,
-        n.burnin = n.burnin,
-        n.iter = n.iter,
-        n.thin = n.thin,
-        DIC = TRUE,
-        working.directory = "." )
-  
+if( use_jags_test_pars ){
+  ## Testing parameters
+  n.chains <- 2
+  n.burnin <- 5*1000
+  n.iter <- 5*7250
+  n.thin <- 5*5
+} else {
+  ## Final model pars
+  n.chains <- 4
+  n.burnin <- 5*10000
+  n.iter <- 5*72500
+  n.thin <- 5*50
 }
 
-stopCluster( cl )
+jags.par <-
+  c( "beta", "gamma", "S", "theta", "xi", "pi" )
 
+
+
+## Use for loop to run different traits overnight
+
+traits <- c( "LMA", "Canopy_area", "FWC", "LWratio" )
+fit <- vector( mode = "list" )
+
+for( i in traits ){
+  y <- protea_df[[ i ]]
+  
+  #library( foreach )
+  #library( doSNOW )
+  
+  #cl <- makeCluster( 4, "SOCK" )
+  #registerDoSNOW( cl )
+  
+  #foreach( i = 1:4, .combine = "list", .packages = c("R2jags"), .export = jags.data ) %dopar% {
+  
+  
+  ## Run jags model
+  fit[[ i ]] <-   
+    do.call( jags.parallel, 
+             list ( data = jags.data,
+                    inits = NULL,
+                    parameters = jags.par,
+                    model.file = model.file, 
+                    n.chains = n.chains,
+                    n.burnin = n.burnin,
+                    n.iter = n.iter,
+                    n.thin = n.thin,
+                    DIC = TRUE,
+                    working.directory = "." ) )
+  
+}  
+#stopCluster( cl )
 
 ## -------------------------------------------------------------------- ##
 
