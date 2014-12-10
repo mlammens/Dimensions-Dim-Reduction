@@ -1,0 +1,361 @@
+Dimension Reduction --- Protea / Pelargonium datasets
+========================================================
+author: Matthew Aiello-Lammens
+date: 2014-12-10
+
+```{r echo=FALSE}
+opts_knit$set( base.dir = "dim-reduction-presentation" )
+```
+
+Background
+========================================================
+
+- For all three datasets (*Protea*, *Pelargonium*, and community)
+we have multiple predictor and multiple response variables
+- We have started tackling this problem (i.e., Mitchell et al. 2014)
+but this method will not work well as we expand the number of
+predictor and response variables
+- **Dimension Reduction** is one promising approach to dealing 
+with these issues
+
+Dimension reduction methods
+========================================================
+
+- Principle Components Analysis (PCA)
+  - Apply to predictors and responses separately
+- Factor Analysis (FA)
+  - Conceptually similar to PCA
+  - Apply to predictors and responses separately
+  - (I have presented these results previously)
+- Redundancy Analysis (RDA)
+  - Conceptually similar to multivariate linear regression
+
+Dimension reduction challenges
+========================================================
+
+- For most methods, unclear how phylogeny would be included
+  - Possible area for future improvement
+- **Major Challange** How do we interpret the axes in reduced
+space?
+  - So far, reduced dimensions do not allow for a clear interpretation
+
+Today's Approach
+========================================================
+
+- Currently multi-predictor **single response** model
+  - Future development will involve expansion to multi-response model
+- Dimension reduction by variable selection and variable clustering
+  - Method presented in Curtis and Ghosh 2011 *J. Stat. Theory and Practice*
+
+
+Start with the linear multi-predictor model
+========================================================
+
+$$
+y_i = x_{1i}\beta_1 + ... + x_{pi}\beta_p + \epsilon_i, \\
+\epsilon_i \sim N(0,\sigma^{-1})
+$$
+
+Each $\beta_p$ is a regression coefficient associated with the
+$p$ th predictor variable
+
+In dimension reduction, we transform the space so that only a small number
+of the new predictors (axes) account for most of the variation in the
+response variable.
+
+Start with the linear multi-predictor model
+========================================================
+
+$$
+y_i = x_{1i}\beta_1 + ... + x_{pi}\beta_p + \epsilon_i, \\
+\epsilon_i \sim N(0,\sigma^{-1})
+$$
+
+Each $\beta_p$ is a regression coefficient associated with the
+$p$ th predictor variable
+
+In the Curtis and Ghosh method, we remove predictors that have 
+very little influence on the response variable and setup a way 
+to **group the remaining reponse variables**.
+
+Curtis and Ghosh 2011 - Key points
+========================================================
+
+- Primarily proposed as a method to deal with multi-colinearity 
+in multi-predictor regression models
+
+> "When predictors are highly correlated, the data do not
+> contain much information on the independent effects of each 
+> predictor"
+
+- Highly correlated predictors can be grouped together
+- Redundant predictors can be removed
+- Conceptually similar to **Penalized Regression** techniques
+(e.g., LASSO, Ridge regression, etc.)
+
+Model specifics - theory
+========================================================
+
+$$
+Y_i | \beta, \sigma^2 \sim N( x_i^T \beta, \sigma^2 ), \text{ for } i = 1, ..., n \\
+\beta_j = \gamma_j \theta_j, \text{ for } j = 1, ..., p \\
+\gamma_j \sim \text{ Bern }(\pi), \text{ for } j = 1, ..., p  \\
+\theta_i | \mathcal{P} \sim \mathcal{P}(\bullet), \text{ for } j = 1, ..., p  \\
+\mathcal{P} \sim \text{DP}(\alpha, \Phi_{0,\eta^2}(\bullet) ) \\
+\pi \sim \text{ Unif }(0,1) \\
+\sigma^2 \sim \text{ InvGam }( a_{\sigma}, b_{\sigma} ) \\
+\eta^2 \sim \text{ InvGam }( a_{\eta}, b_{\eta} ) \\
+$$
+
+Model specifics - practice
+========================================================
+
+$$
+Y_i | \beta, \sigma^2 \sim N( x_i^T \beta, \sigma^2 ), \text{ for } i = 1, ..., n \\
+\beta_j = \gamma_j \xi_{S_{j}}, \text{ for } j = 1, ..., p \\
+\gamma_j \sim \text{ Bern }(\pi), \text{ for } j = 1, ..., p  \\
+S_j \sim \text{ Multinom }( p_1, ... p_M ), \text{ for } j = 1, ..., p \\
+\xi_j | \eta^2 \sim N( 0, \eta^2 ), \text{ for } j = 1, ..., M \\
+(p_1, ..., p_m) \sim \text{ Dirichlet }( \alpha/M, ..., \alpha/M ) \\
+\pi \sim \text{ Unif }(0,1) \\
+\sigma^2 \sim \text{ InvGam }( a_{\sigma}, b_{\sigma} ) \\
+\eta^2 \sim \text{ InvGam }( a_{\eta}, b_{\eta} ) \\
+$$
+
+Data
+========================================================
+
+Traits 
+- LMA, LWR, FWC, Canopy Area
+
+******
+
+Predictors
+- **CDD**, CFD, CSU, GDD, **MAP**, MMP.07, MMP.01, **MAT**, MTmin.07, MTmax.01, rr2, sdii, **ratio**, **Elevation**, **Insolation**
+
+Data - Correlations among predictors
+========================================================
+
+```{r, echo=FALSE, fig.height=8, fig.width=8 }
+load( "protea_jags_run.RData" )
+
+library( ggplot2 )
+
+## -------------------------------------------------------------------- ##
+## FUNCTION: make_jags_results_list
+##
+## Author: Matthew Aiello-Lammens
+## Date Created: ￼2014-12-10
+##
+## Purpose:
+##
+## -------------------------------------------------------------------- ##
+make_jags_results_list <- function( fit ){
+  library( reshape2 )
+  
+  ## Make a function to extract the model outputs
+  get_mod_outs <- function( x ){ lapply( X = x$BUGSoutput$sims.list, FUN = as.data.frame ) }
+  
+  ## Extract model outputs for all trait values
+  all_mod_outs <- lapply( fit, FUN = get_mod_outs )
+  
+  
+  make_mod_out_df <- function( mod_out_dfs ){
+    ## Make a vector of climate vars
+    clim_vars <- c("CDD","CFD","CSU","GDD",
+                   "MAP","MMP.07","MMP.01",
+                   "MAT","MTmin.07","MTmax.01",
+                   "rr2","sdii","ratio",
+                   "Elevation", "Insolation")
+    ## Add climate vars to beta
+    names( mod_out_dfs$beta ) <- clim_vars
+    ## Melt beta matrix
+    beta_m <- melt( mod_out_dfs$beta, value.name = "beta", variable.name = "clim_var" )
+    ## Melt S matrix
+    S_melt <- melt( mod_out_dfs$S, value.name = "S" )
+    ## Melt the theta matrix
+    theta_melt <- melt( mod_out_dfs$theta, value.name = "theta" )
+    ## Melt the pi matrix
+    pi_melt <- melt( mod_out_dfs$pi, value.name = "pi" )
+    
+    ## Combine the melted matrix values
+    jags_vals_mat <- beta_m
+    jags_vals_mat$S <- S_melt$S
+    jags_vals_mat$theta <- theta_melt$theta
+    jags_vals_mat$pi <- pi_melt$pi
+    
+    return( jags_vals_mat )
+  }
+  
+  
+  ## Make a data.frame of the outputs for each of the traits
+  all_mod_outs_df <- lapply( all_mod_outs, make_mod_out_df )
+  
+  ## Return this list object
+  return( all_mod_outs_df )
+}
+
+## Get protea models
+protea_model_res <- make_jags_results_list( fit = fit )
+```
+
+```{r, echo=FALSE }
+library( corrplot )
+
+corrplot.mixed( cor( X ), upper = "ellipse" )
+
+```
+
+Results - Protea:LMA
+========================================================
+
+Histograms of Beta
+
+```{r, echo=FALSE, message=FALSE, fig.width = 9}
+
+ggplot() + geom_histogram( data = protea_model_res$LMA, aes( x = beta, fill = factor( clim_var ) ) ) +
+  facet_wrap( ~clim_var, scales = "free" ) +
+  geom_vline( xintercept = 0, colour = "red" ) +
+  scale_fill_discrete( name = "Clim Var" )
+
+```
+
+Results - Protea:LMA
+========================================================
+
+Histograms of Theta (or Xi)
+
+```{r, echo=FALSE, message=FALSE, fig.width = 9}
+
+ggplot() + geom_histogram( data = protea_model_res$LMA, aes( x = theta, fill = factor( clim_var ) ) ) +
+  facet_wrap( ~clim_var, scales = "free" ) +
+  geom_vline( xintercept = 0, colour = "red" ) +
+  scale_fill_discrete( name = "Clim Var" )
+
+```
+
+
+Results - Protea:LMA
+========================================================
+
+Beta versus S (Regression coeff versus label)
+
+```{r, echo=FALSE, message=FALSE, fig.width = 9}
+ggplot() + geom_point( data = protea_model_res$LMA, aes( x = S, y = beta, colour = factor( clim_var ) ) ) + 
+  facet_grid( clim_var~.) + 
+  xlab( "S" ) + 
+  ylab( "beta" ) + 
+  scale_colour_discrete( name = "Clim Var" )
+
+
+```
+
+Results - Protea:LWR
+========================================================
+
+```{r, echo=FALSE, message=FALSE, fig.width = 9}
+
+ggplot() + geom_histogram( data = protea_model_res$LWratio, aes( x = beta, fill = factor( clim_var ) ) ) +
+  facet_wrap( ~clim_var, scales = "free" ) +
+  geom_vline( xintercept = 0, colour = "red" ) +
+  scale_fill_discrete( name = "Clim Var" )
+
+```
+
+Results - Protea:FWC
+========================================================
+
+```{r, echo=FALSE, message=FALSE, fig.width = 9}
+
+ggplot() + geom_histogram( data = protea_model_res$FWC, aes( x = beta, fill = factor( clim_var ) ) ) +
+  facet_wrap( ~clim_var, scales = "free" ) +
+  geom_vline( xintercept = 0, colour = "red" ) +
+  scale_fill_discrete( name = "Clim Var" )
+
+```
+
+Results - Protea:Canopy Area
+========================================================
+
+```{r, echo=FALSE, message=FALSE, fig.width = 9}
+
+ggplot() + geom_histogram( data = protea_model_res$Canopy_area, aes( x = beta, fill = factor( clim_var ) ) ) +
+  facet_wrap( ~clim_var, scales = "free" ) +
+  geom_vline( xintercept = 0, colour = "red" ) +
+  scale_fill_discrete( name = "Clim Var" )
+
+```
+
+
+Results - Pelargonium:LMA
+========================================================
+
+```{r echo=FALSE}
+load( "pelargonium_test_jags_run.RData" )
+
+## Get pellie models
+pel_model_res <- make_jags_results_list( fit = fit )
+
+```
+
+Histograms of Beta
+
+```{r, echo=FALSE, message=FALSE, fig.width = 9}
+
+ggplot() + geom_histogram( data = pel_model_res$LMA, aes( x = beta, fill = factor( clim_var ) ) ) +
+  facet_wrap( ~clim_var, scales = "free" ) +
+  geom_vline( xintercept = 0, colour = "red" ) +
+  scale_fill_discrete( name = "Clim Var" )
+
+```
+
+Results - Pelargonium:LWR
+========================================================
+
+```{r, echo=FALSE, message=FALSE, fig.width = 9}
+
+ggplot() + geom_histogram( data = pel_model_res$LWratio, aes( x = beta, fill = factor( clim_var ) ) ) +
+  facet_wrap( ~clim_var, scales = "free" ) +
+  geom_vline( xintercept = 0, colour = "red" ) +
+  scale_fill_discrete( name = "Clim Var" )
+
+```
+
+Results - Pelargonium:FWC
+========================================================
+
+```{r, echo=FALSE, message=FALSE, fig.width = 9}
+
+ggplot() + geom_histogram( data = pel_model_res$FWC, aes( x = beta, fill = factor( clim_var ) ) ) +
+  facet_wrap( ~clim_var, scales = "free" ) +
+  geom_vline( xintercept = 0, colour = "red" ) +
+  scale_fill_discrete( name = "Clim Var" )
+
+```
+
+Results - Pelargonium:Canopy Area
+========================================================
+
+```{r, echo=FALSE, message=FALSE, fig.width = 9}
+
+ggplot() + geom_histogram( data = pel_model_res$Canopy_area, aes( x = beta, fill = factor( clim_var ) ) ) +
+  facet_wrap( ~clim_var, scales = "free" ) +
+  geom_vline( xintercept = 0, colour = "red" ) +
+  scale_fill_discrete( name = "Clim Var" )
+
+```
+
+Next Steps - near term
+========================================================
+
+- Finalize JAGS model
+  - Still needs a little bit of tweaking
+- Establish clustering method for regression coefficients
+- Compare with results from previous analysis
+- Run using CWM data
+
+Next Steps - longer term
+========================================================
+
+- Include phylogeny
+- Construct as multi-response model
