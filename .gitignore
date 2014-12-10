@@ -10,6 +10,7 @@ figure/*
 
 ## Ignore R presentation directory
 dim-reduction-presentation/*
+dimension-reduction-presentation.md
 
 ## Miscellaneous files to ignore
 ##
