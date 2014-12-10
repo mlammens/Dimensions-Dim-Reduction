@@ -8,6 +8,9 @@
 ##
 figure/*
 
+## Ignore R presentation directory
+dim-reduction-presentation/*
+
 ## Miscellaneous files to ignore
 ##
 temp.txt
@@ -19,3 +22,4 @@ temp.txt
 .Rproj.user
 .Rhistory
 .RData
+*.RData
