@@ -4,7 +4,7 @@ author: Matthew Aiello-Lammens
 date: 2014-12-10
 
 ```{r echo=FALSE}
-opts_knit$set( base.dir = "dim-reduction-presentation" )
+#opts_knit$set( base.dir = "dim-reduction-presentation" )
 ```
 
 Background
