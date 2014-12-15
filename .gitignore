@@ -18,6 +18,7 @@ dimension-reduction-presentation_files/
 ##
 temp.txt
 *~
+*.html
 
 ## R files to ignore
 ##
