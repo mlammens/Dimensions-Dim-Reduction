@@ -10,7 +10,7 @@ figure/*
 
 ## Ignore R presentation files (other than source)
 dimension-reduction-presentation.md
-dimension-reduction-presentation.html
+*.html
 dimension-reduction-presentation-figure/
 dimension-reduction-presentation_files/
 
