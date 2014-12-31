@@ -15,9 +15,11 @@ model{
     S[j] ~ dcat( p[1:M] )
     theta[j] <- xi[ S[j] ]
     gamma[j] ~ dbern( pi[j] )
+    id.j[j] <- pow(2, j-1)*gamma[j]
     beta[j] <- theta[j] * gamma[j]
     pi[j] ~ dunif (0 ,1)
   }
+  id <- sum(id.j[])
 
   p[1:M] ~ ddirch( a.p[] )
 
