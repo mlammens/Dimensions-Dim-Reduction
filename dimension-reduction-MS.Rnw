@@ -47,13 +47,21 @@ variables, which is much greater than in the previous analysis (@Mitchel2014)
 
 \subsection{Simulated Data}
 
-As a proof of concept and to examine model effectiveness we simulated a dataset on which
-we applied the model. We used the true predictor variables (environmental conditions) observed at 
-all sampling locations and a pre-defined functional relationship between predictors and a simulated
-response in our test. To better examine the effects of multi-colinearity we chose three predictor
-variables to use in the functional response. These three predictors were highly correlated with 
-other variables in the model. The remaining predictors were considered to have little, to no,
-effect on the response. 
+As a proof of concept and to examine model effectiveness we simulated a dataset and use the
+variable seelction model to determine \textit{known} regression coefficients of predictor variables. 
+We used the true predictor variables (environmental conditions) observed at 
+all \textit{Protea} and \textit{Pelargonium}
+sampling locations and a pre-defined functional relationship between predictors and a simulated
+response in our test. That is, we simulated a trait whose value was completely driven by 
+environmental conditions.
+To better simulate the effects of multi-colinearity we chose three predictor
+variables to use in the functional response that were highly correlated with 
+other variables in the model. 
+The values of each predictor variable were scaled to have mean = 0 and standard deviation = 1
+before calculating the new trait value. For three of 15 environmental variable, we set
+$\beta = 0.8$ as the effect of that variable on the simulated trait value.
+The remaining predictors were considered to have no
+effect on the response (i.e., $\beta = 0$). 
 
 We also examined the scenario in which two highly positively correlated predictors have 
 oppisite effects on the response. 

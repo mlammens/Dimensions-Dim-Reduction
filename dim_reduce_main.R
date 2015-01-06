@@ -13,8 +13,6 @@
 ## Source setup and function files
 ## -------------------------------------------------------------------- ##
 source( "dim_reduce_setup.R" )
-source( "format_prot_pel_data.R" )
-source( "dim_reduce_generate_sim_data.R" )
 
 ## -------------------------------------------------------------------- ##
 ## Get formated protea and pelargonium dataset
@@ -55,8 +53,17 @@ corrplot.mixed( prot_pel_env_cor, upper = "ellipse" )
 ## * Tmin.07 - Elevation
 
 
+## ******************************************************************** ##
+## Generate simulated data based on correlation relationships
+## ***
+## As per discussions with Kent and Xiaojing, we want to simulate a 
+## trait that is related to only three variables, but those variables
+## are highly correlated with other variables. We also want to examine
+## the effects of various levels of noise.
+## ******************************************************************** ##
+
 ## -------------------------------------------------------------------- ##
-## Call dim_reduce_generate_sim_data function
+## Generate a simulated Protea trait
 ## -------------------------------------------------------------------- ##
 
 clim_vars_beta <- rep( 0, length( clim_vars ) )
@@ -64,8 +71,45 @@ clim_vars_beta[ which( clim_vars == "MMP.07" ) ] <- 0.8
 clim_vars_beta[ which( clim_vars == "MTmin.07" ) ] <- 0.8
 clim_vars_beta[ which( clim_vars == "Elevation" ) ] <- 0.8
 
-sim_trait <- dim_reduce_generate_sim_data( df = filter( prot_pel_df, genus == "Protea" ), 
-                                           clim_vars = clim_vars, 
-                                           clim_vars_beta = clim_vars_beta, 
-                                           noise = 0.2 )
+noise_vect <- seq( from = 0, to = 1, by = 0.1 )
 
+## Use dim_reduce_generate_sim_data function to create a dataset of 
+## simulated values with various degrees of noise
+sim_trait_df <- lapply( noise_vect, dim_reduce_generate_sim_data, 
+                        df = filter( prot_pel_df, genus == "Protea" ), 
+                        clim_vars = clim_vars, 
+                        clim_vars_beta = clim_vars_beta,
+                        scale = TRUE )
+
+## Format into a data.frame and name columns
+sim_trait_df <- ldply( sim_trait_df )
+sim_trait_df <- as.data.frame( t( sim_trait_df ) )
+sim_trait_names <- paste0( "sim_trait_noise_", noise_vect )
+names( sim_trait_df ) <- sim_trait_names
+
+## Merge the simulated trait values with the environmental predictors
+sim_trait_df <- cbind( filter( prot_pel_df, genus == "Protea" ), sim_trait_df )
+
+
+## ******************************************************************** ##
+## ******************************************************************** ##
+## Run Curtis & Ghosh algorithm for simulated data
+## ******************************************************************** ##
+## ******************************************************************** ##
+
+## Create and empty list object to store JAGS model fit results in
+sim_fit <- vector( mode = "list" )
+
+## Use a for loop to loop through all of the simulated traits
+for ( i in 6:6 ){ 
+      #length( sim_trait_names ) ){
+  
+  sim_fit[[ sim_trait_names[ i ] ]] <-
+    dim_reduce_run_CG_JAGS( X = sim_trait_df[ clim_vars ], 
+                            y = sim_trait_df[[ sim_trait_names[ i ] ]], 
+                            scale_x = TRUE, 
+                            use_jags_test_pars = FALSE )
+}
+
+
+  

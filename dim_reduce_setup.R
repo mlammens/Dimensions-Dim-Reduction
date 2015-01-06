@@ -40,3 +40,10 @@ clim_vars <- c("CDD","CFD","CSU","GDD",
 traits <- c( "LMA", "Canopy_area", "LWratio", "FWC",
              "Height", "lamina_thickness" )
 
+## -------------------------------------------------------------------- ##
+## Load custum funtions
+## -------------------------------------------------------------------- ##
+source( "format_prot_pel_data.R" )
+source( "dim_reduce_generate_sim_data.R" )
+source( "dim_reduce_run_CG_JAGS.R" )
+
