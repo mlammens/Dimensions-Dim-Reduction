@@ -90,6 +90,18 @@ names( sim_trait_df ) <- sim_trait_names
 ## Merge the simulated trait values with the environmental predictors
 sim_trait_df <- cbind( filter( prot_pel_df, genus == "Protea" ), sim_trait_df )
 
+## -------------------------------------------------------------------- ##
+## Calculate signal to noise ratio
+## -------------------------------------------------------------------- ##
+
+## Calculate mean value for each species within sites
+sig_noise_df <- group_by( sim_trait_df, Site_location, Species_name) %>%
+  summarize( mean_noise_0.5 = mean( sim_trait_noise_0.5 ),
+             sd_noise_0.5 = sd( sim_trait_noise_0.5 ) )
+
+sig_noise_df$SNR <- sig_noise_df$mean_noise_0.5 / sig_noise_df$sd_noise_0.5
+
+mean( sig_noise_df$SNR, na.rm = TRUE )
 
 ## ******************************************************************** ##
 ## ******************************************************************** ##
@@ -101,14 +113,14 @@ sim_trait_df <- cbind( filter( prot_pel_df, genus == "Protea" ), sim_trait_df )
 sim_fit <- vector( mode = "list" )
 
 ## Use a for loop to loop through all of the simulated traits
-for ( i in 6:6 ){ 
+for ( i in 11:11 ){ 
       #length( sim_trait_names ) ){
   
   sim_fit[[ sim_trait_names[ i ] ]] <-
     dim_reduce_run_CG_JAGS( X = sim_trait_df[ clim_vars ], 
                             y = sim_trait_df[[ sim_trait_names[ i ] ]], 
                             scale_x = TRUE, 
-                            use_jags_test_pars = FALSE )
+                            use_jags_test_pars = TRUE )
 }
 
 
