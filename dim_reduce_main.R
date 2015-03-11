@@ -30,28 +30,6 @@ prot_pel_df <- format_prot_pel_data( dim_red_basedir = "",
 prot_pel_env_cor <- 
   cor( select( prot_pel_df, which( names( prot_pel_df ) %in% clim_vars ) ) )
 
-## Plot for visual interpretation
-corrplot.mixed( prot_pel_env_cor, upper = "ellipse" )
-
-## This shows the following variables to by highly **positively** correlated ( >0.8 )
-## * CSU - Tmax.01
-## * GDD - Tmin.07
-## * GDD - MAT
-## * MAP - rr2
-## * MAP - sdii
-## * MAP - MMP.07
-## * rr2 - sdii
-## * rr2 - MMP.07
-## * sdii - MMP.07
-## * Tmax.01 - MAT
-
-## And the following are highly **negatively** correlated ( < -0.8 )
-## * CDD - rr2
-## * CFD - GDD
-## * CFD - Tmin.07
-## * GDD - Elevation
-## * Tmin.07 - Elevation
-
 
 ## ******************************************************************** ##
 ## Generate simulated data based on correlation relationships
@@ -66,25 +44,68 @@ corrplot.mixed( prot_pel_env_cor, upper = "ellipse" )
 ## Generate a simulated Protea trait
 ## -------------------------------------------------------------------- ##
 
+## Set default trait regression coefficients
 clim_vars_beta <- rep( 0, length( clim_vars ) )
-clim_vars_beta[ which( clim_vars == "MMP.07" ) ] <- 0.8
-clim_vars_beta[ which( clim_vars == "MTmin.07" ) ] <- 0.8
-clim_vars_beta[ which( clim_vars == "Elevation" ) ] <- 0.8
 
+## Make vector of noise levels
 noise_vect <- seq( from = 0, to = 1, by = 0.1 )
 
 ## Use dim_reduce_generate_sim_data function to create a dataset of 
 ## simulated values with various degrees of noise
-sim_trait_df <- lapply( noise_vect, dim_reduce_generate_sim_data, 
+
+## -------------------------------------------------------------------------- ##
+## First create trait for scenario with three environtmental
+## variables, all which have the same influence
+clim_vars_beta[ which( clim_vars == "MMP.07" ) ] <- 0.8
+clim_vars_beta[ which( clim_vars == "MTmin.07" ) ] <- 0.8
+clim_vars_beta[ which( clim_vars == "Elevation" ) ] <- 0.8
+
+
+sim_trait_df_3_eq <- lapply( noise_vect, dim_reduce_generate_sim_data, 
                         df = filter( prot_pel_df, genus == "Protea" ), 
                         clim_vars = clim_vars, 
                         clim_vars_beta = clim_vars_beta,
                         scale = TRUE )
 
+## -------------------------------------------------------------------------- ##
+## Create trait for scenario with three environmental variables,
+## two with equal incfluence
+clim_vars_beta[ which( clim_vars == "MMP.07" ) ] <- 0.8
+clim_vars_beta[ which( clim_vars == "MTmin.07" ) ] <- 0.2
+clim_vars_beta[ which( clim_vars == "Elevation" ) ] <- 0.2
+
+sim_trait_df_2_eq <- lapply( noise_vect, dim_reduce_generate_sim_data, 
+                             df = filter( prot_pel_df, genus == "Protea" ), 
+                             clim_vars = clim_vars, 
+                             clim_vars_beta = clim_vars_beta,
+                             scale = TRUE )
+
+## -------------------------------------------------------------------------- ##
+## Create trait for scenario with three environmental variables,
+## all with different influence
+clim_vars_beta[ which( clim_vars == "MMP.07" ) ] <- 0.8
+clim_vars_beta[ which( clim_vars == "MTmin.07" ) ] <- 0.5
+clim_vars_beta[ which( clim_vars == "Elevation" ) ] <- 0.2
+
+sim_trait_df_noeq <- lapply( noise_vect, dim_reduce_generate_sim_data, 
+                             df = filter( prot_pel_df, genus == "Protea" ), 
+                             clim_vars = clim_vars, 
+                             clim_vars_beta = clim_vars_beta,
+                             scale = TRUE )
+
+
+## -------------------------------------------------------------------------- ##
+## Merge simulate traits
+
+sim_trait_df <- c( sim_trait_df_3_eq, sim_trait_df_2_eq, sim_trait_df_noeq )
+
+
 ## Format into a data.frame and name columns
 sim_trait_df <- ldply( sim_trait_df )
 sim_trait_df <- as.data.frame( t( sim_trait_df ) )
 sim_trait_names <- paste0( "sim_trait_noise_", noise_vect )
+sim_trait_names <- paste0( sim_trait_names, 
+                           rep( c( "_3eq", "_2eq", "noeq" ), each = length( noise_vect ) ) )
 names( sim_trait_df ) <- sim_trait_names
 
 ## Merge the simulated trait values with the environmental predictors
@@ -94,14 +115,12 @@ sim_trait_df <- cbind( filter( prot_pel_df, genus == "Protea" ), sim_trait_df )
 ## Calculate signal to noise ratio
 ## -------------------------------------------------------------------- ##
 
-## Calculate mean value for each species within sites
+## Calculate mean and SD for each species within sites
 sig_noise_df <- group_by( sim_trait_df, Site_location, Species_name) %>%
-  summarize( mean_noise_0.5 = mean( sim_trait_noise_0.5 ),
-             sd_noise_0.5 = sd( sim_trait_noise_0.5 ) )
+  summarize( mean_noise_0.5 = mean( sim_trait_noise_0.5_3eq ),
+             sd_noise_0.5 = sd( sim_trait_noise_0.5_3eq ) )
 
-sig_noise_df$SNR <- sig_noise_df$mean_noise_0.5 / sig_noise_df$sd_noise_0.5
-
-mean( sig_noise_df$SNR, na.rm = TRUE )
+mean( sig_noise_df$sd_noise_0.5, na.rm = TRUE ) / 0.25
 
 ## ******************************************************************** ##
 ## ******************************************************************** ##
@@ -113,7 +132,7 @@ mean( sig_noise_df$SNR, na.rm = TRUE )
 sim_fit <- vector( mode = "list" )
 
 ## Use a for loop to loop through all of the simulated traits
-for ( i in 11:11 ){ 
+for ( i in 1:length( sim_trait_names ) ){ 
       #length( sim_trait_names ) ){
   
   sim_fit[[ sim_trait_names[ i ] ]] <-

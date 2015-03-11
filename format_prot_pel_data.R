@@ -7,13 +7,21 @@
 ## Purpose:
 ## Read in and format the protea and pellargonium datasets to be used in 
 ## the dimension reduction and variable selection work.
+## 
+## Args:
+#' @param dim_red_basedir Path to the dimensions reductions directory. 
+#' Defaults to the present working directory.
+#' @param make_new_clim_df If TRUE, create a new climate dataset. Otherwise
+#' will use file 'data/prot_pel_clim.csv'
+#' @param clim_vars Climate variables to inlcude in formatted dataset
+#' @param traits Trait variables to include in formatted dataset
 ##
 ## ******************************************************************** ##
 
 ## -------------------------------------------------------------------- ##
 ## Set script params
 ## -------------------------------------------------------------------- ##
-format_prot_pel_data <- function( dim_red_basedir,
+format_prot_pel_data <- function( dim_red_basedir = "",
                                   make_new_clim_df = FALSE,
                                   clim_vars,
                                   traits ){
