@@ -105,7 +105,7 @@ sim_trait_df <- ldply( sim_trait_df )
 sim_trait_df <- as.data.frame( t( sim_trait_df ) )
 sim_trait_names <- paste0( "sim_trait_noise_", noise_vect )
 sim_trait_names <- paste0( sim_trait_names, 
-                           rep( c( "_3eq", "_2eq", "noeq" ), each = length( noise_vect ) ) )
+                           rep( c( "_3eq", "_2eq", "_noeq" ), each = length( noise_vect ) ) )
 names( sim_trait_df ) <- sim_trait_names
 
 ## Merge the simulated trait values with the environmental predictors
@@ -142,5 +142,5 @@ for ( i in 1:length( sim_trait_names ) ){
                             use_jags_test_pars = TRUE )
 }
 
-
+save.image( file = "Preliminary.RData" )
   
