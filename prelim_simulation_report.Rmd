@@ -1,0 +1,269 @@
+---
+title: "Preliminary Simulation Results"
+author: "Matthew E. Aiello-Lammens"
+date: "January 6, 2015"
+output: html_document
+---
+
+```{r file-settings, include=FALSE }
+## Set package options
+#knitr::opts_knit$set( root.dir = "../" )
+knitr::opts_chunk$set( message=FALSE, warning=FALSE, fig.width = 6.5, fig.height = 6.5, echo=FALSE )
+```
+
+
+```{r, include=FALSE}
+## Source setup script
+source( "dim_reduce_setup.R" )
+## Load data
+load( "Preliminary.RData" )
+
+library( knitr )
+```
+
+# Objective
+
+We wanted to examine the effectiveness of the Curtis and Ghosh (2011) variable
+selection algorithm using a simulated dataset. In this way, we 
+know *a priori* the functional relationships between environmental conditions and
+trait values. Because we are interested in understanding the effects of multi-collinearity
+on the accuracy of the Curtis and Ghosh method, in simulating our new trait, we
+purposely used a small number of environmental variables that were highly correlated 
+with other environmental variables.
+
+# Environmental variables
+
+We are working with 15 different environmental variables: 
+
+Environmental variable | Symbol
+-----------------------|-------
+Consecutive drought days | CDD 
+Consecutive frost days | CFD
+Consecutive summer days | CSU
+Growing degree days | GDD
+Mean annual precipitation | MAP
+Mean monthly precipitation in July | MMP.07 
+Mean monthly precipitation in January | MMP.01 
+Mean annual temperature | MAT
+Minimum monthly temperature for July | MTmin.07 
+Maximum monthly temperature for January | MTmax.01
+Number of days with >2 mm rain | rr2
+Average rainfall amount for wet days | sdii (simple daily intensity index)
+Ratio of summer and winter rainfall (i.e., seasonality) | ratio 
+Elevation | elevation
+Solar insulation | insulation 
+
+Many of these variables
+are highly correlated with each other, as is evident from the 
+correlation plot below.
+
+```{r corr_plot, echo = FALSE, fig.height=20, fig.width=20}
+corrplot.mixed( prot_pel_env_cor, upper = "ellipse" )
+```
+
+Looking at the correlation values, we find that the following variables
+are highly **positively correlated ( > 0.8)**:
+
+* CSU - MTmax.01
+* GDD - MTmin.07
+* GDD - MAT
+* MAP - rr2
+* MAP - sdii
+* MAP - MMP.07
+* rr2 - sdii
+* rr2 - MMP.07
+* sdii - MMP.07
+* MTmax.01 - MAT
+
+And the following are highly **negatively correlated ( < -0.8 )**
+
+* CDD - rr2
+* CFD - GDD
+* CFD - MTmin.07
+* GDD - Elevation
+* MTmin.07 - Elevation
+
+# Simulatated trait values
+
+Based on the correlation analysis results, we chose to make our 
+**simulated trait a function of MMP.07, MTmin.07, and Elevation**.
+The functional form is:
+
+$$
+\text{Simulated trait} = \boldsymbol\beta * \boldsymbol X + \boldsymbol\epsilon
+$$
+
+where $\boldsymbol \beta$ is vector of environmental variable coefficients, 
+$\boldsymbol X$ is a matrix of observed environmental variable values, and
+$\boldsymbol \epsilon$ is a vector of random noise values with $\mu = 0$ and 
+$\sigma^2$ varied from $0, ..., 1$ by increments of $0.1$. 
+
+We used three different sets of values for 
+$\beta_{MMP.07}$, $\beta_{MTmin.07}$, and $\beta_{Elevation}$.
+
+1. $\beta_{MMP.07} = \beta_{MTmin.07} = \beta_{Elevation} = 0.8$ 
+2. $\beta_{MMP.07} = 0.8$, $\beta_{MTmin.07} = 0.5$, $\beta_{Elevation} = 0.2$ 
+3. $\beta_{MMP.07} = 0.8$, $\beta_{MTmin.07} = \beta_{Elevation} = 0.2$ 
+
+while all other $\beta$ values $=0$ in each scenario.
+
+
+When calculating the new trait values, we used only the environmental conditions
+for the `r sum( prot_pel_df$genus == "Protea")` *Protea* observations,
+which came from `r length( unique( prot_pel_df$Site_location ) )` different locations.
+In the figure below, we plot the simulated trait value versus each of the
+15 environmental conditions (rows) for 11 different $sigma^2$ values (columns), 
+for simulation scenario (1) above (i.e., three equal $\beta$ valeus). 
+Plots include a linear regression fit line (blue).
+
+```{r trait_fig, echo=FALSE, message=FALSE, fig.height=20, fig.width=20}
+sim_trait_m <- melt( sim_trait_df, measure.vars = clim_vars, 
+                     value.name = "env.val", variable.name = "env.var" )
+
+sim_trait_m <- melt( sim_trait_m, measure.vars = sim_trait_names, 
+                     value.name = "sim.trait", variable.name = "sim.noise" )
+
+## Look at only the simulations where all three coef = 0.8
+sim_trait_m_temp <- filter( sim_trait_m, grepl( pattern = "3eq", sim.noise ) )
+sim_trait_m_temp$sim.noise <- 
+  sub( pattern = "_3eq", replacement = "", sim_trait_m_temp$sim.noise )
+
+ggplot( data = sim_trait_m_temp,
+        aes( x = env.val, y = sim.trait ) ) +
+  geom_point() +
+  stat_smooth( method = "lm" ) +
+  facet_grid( env.var ~ sim.noise ) +
+  xlab( "Environmental variable value" ) +
+  ylab( "Simulated trait value" ) +
+  theme_bw()
+
+```
+
+# Application of Curtis and Ghosh 2011 method
+
+We applied the JAGS model to the simulated trait for a number of the 
+different noise values. Considering the variable noise values and the
+three coefficient scenarios, we explore multiple different signal
+to noise ratios (SNR). The possible SNR values
+are presented in the table below.
+
+**Table 1.** Signal to noise ratio (SNR) values for each coefficient value
+under various noise scenarios. Here, SNR is calculated as the *a priori* set
+coefficient value divided by the *a priori* set noise (standard deviation) 
+value.
+
+```{r}
+coef_vals <- c( 0.8, 0.5, 0.2 )
+
+SNR <- as.data.frame( t( coef_vals %*% t( 1/noise_vect[-1] ) ) )
+names( SNR ) <- paste0("Signal_", coef_vals)
+
+SNR$Noise <- noise_vect[-1]
+
+SNR <- SNR[ c( "Noise", "Signal_0.2", "Signal_0.5", "Signal_0.8" ) ]
+
+kable( SNR, digits = 2 )
+
+```
+
+# Results
+
+Below are historgrams of CG results for various simulations. Also included
+are the number of non 0s for each coefficient (i.e., the number of times
+a variable was selected).
+
+**Model Notes:**
+
+We used the following JAGS parameters: 2 chains, iterations = 36,250, 
+burn-in = 5,000, and thinning = 25. Once values are compiled, the result
+is 2500 coefficient values for each environmental variable.
+
+## Coefficients = 0.8, Noise = 0.4
+
+```{r echo=FALSE, message=FALSE, fig.height=14, fig.width=14 }
+beta_temp <- sim_fit$sim_trait_noise_0.4_3eq$BUGSoutput$sims.list$beta
+beta_temp <- as.data.frame( beta_temp )
+names( beta_temp ) <- clim_vars
+
+ggplot() + 
+  geom_boxplot( data = melt( beta_temp ), aes( x = variable, y = value ) ) +
+  xlab( "Environmental variable" ) +
+  ylab( "Regression coefficient value" ) +
+  theme_bw()
+
+
+nonzero_tbl <- apply( beta_temp, MARGIN = 2, FUN = function(x){ sum( x != 0 ) } )
+nonzero_tbl <- as.data.frame( t( nonzero_tbl ) )
+
+```
+
+## Coefficients = 0.8 and 0.2, Noise = 0.1
+
+```{r echo=FALSE, message=FALSE, fig.height=14, fig.width=14 }
+beta_temp <- sim_fit$sim_trait_noise_0.1_2eq$BUGSoutput$sims.list$beta
+beta_temp <- as.data.frame( beta_temp )
+names( beta_temp ) <- clim_vars
+
+ggplot() + 
+  geom_boxplot( data = melt( beta_temp ), aes( x = variable, y = value ) ) +
+  xlab( "Environmental variable" ) +
+  ylab( "Regression coefficient value" ) +
+  theme_bw()
+
+nonzero_tbl <- rbind( nonzero_tbl, apply( beta_temp, MARGIN = 2, FUN = function(x){ sum( x != 0 ) } ) )
+
+```
+
+## Coefficients = 0.8, Noise = 0.8
+
+```{r echo=FALSE, message=FALSE, fig.height=14, fig.width=14 }
+beta_temp <- sim_fit$sim_trait_noise_0.8_3eq$BUGSoutput$sims.list$beta
+beta_temp <- as.data.frame( beta_temp )
+names( beta_temp ) <- clim_vars
+
+ggplot() + 
+  geom_boxplot( data = melt( beta_temp ), aes( x = variable, y = value ) ) +
+  xlab( "Environmental variable" ) +
+  ylab( "Regression coefficient value" ) +
+  theme_bw()
+
+nonzero_tbl <- rbind( nonzero_tbl, apply( beta_temp, MARGIN = 2, FUN = function(x){ sum( x != 0 ) } ) )
+
+
+```
+
+## Coefficients = 0.8, 0.5, and 0.2, Noise = 0.5
+
+```{r echo=FALSE, message=FALSE, fig.height=14, fig.width=14 }
+beta_temp <- sim_fit$sim_trait_noise_0.5noeq$BUGSoutput$sims.list$beta
+beta_temp <- as.data.frame( beta_temp )
+names( beta_temp ) <- clim_vars
+
+ggplot() + 
+  geom_boxplot( data = melt( beta_temp ), aes( x = variable, y = value ) ) +
+  xlab( "Environmental variable" ) +
+  ylab( "Regression coefficient value" ) +
+  theme_bw()
+
+nonzero_tbl <- rbind( nonzero_tbl, apply( beta_temp, MARGIN = 2, FUN = function(x){ sum( x != 0 ) } ) )
+
+
+```
+
+```{r format_tble}
+noise <- c( 0.4, 0.1, 0.8, 0.5 )
+MMP.07_sig <- c( 0.8, 0.8, 0.8, 0.8 )
+MTmin.07_sig <- c( 0.8, 0.2, 0.8, 0.5 )
+Elevation_sig <- c( 0.8, 0.2, 0.8, 0.2 )
+
+nonzero_tbl <- cbind( noise, MMP.07_sig, MTmin.07_sig, Elevation_sig, nonzero_tbl )
+
+kable( nonzero_tbl )
+
+```
+
+# Thoughts
+
+* The Curtis and Ghosh method appears to return relatively appropriate values
+for the regression coefficients, which I am a little surprised by given the 
+high correlation values between the predictor variables. 
