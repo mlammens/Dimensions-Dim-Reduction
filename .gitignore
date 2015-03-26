@@ -15,7 +15,7 @@ dimension-reduction-presentation-figure/
 dimension-reduction-presentation_files/
 
 ## Ignore preliminary results report files
-prelim_simulation*
+prelim_simulation*html
 Preliminary.RData
 
 ## Miscellaneous files to ignore
