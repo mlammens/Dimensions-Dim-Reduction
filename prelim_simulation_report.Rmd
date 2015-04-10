@@ -1,7 +1,6 @@
 ---
 title: "Preliminary Simulation Results"
 author: "Matthew E. Aiello-Lammens"
-date: "January 6, 2015"
 output: html_document
 ---
 
@@ -23,13 +22,20 @@ library( knitr )
 
 # Objective
 
-We wanted to examine the effectiveness of the Curtis and Ghosh (2011) variable
-selection algorithm using a simulated dataset. In this way, we 
-know *a priori* the functional relationships between environmental conditions and
-trait values. Because we are interested in understanding the effects of multi-collinearity
-on the accuracy of the Curtis and Ghosh method, in simulating our new trait, we
-purposely used a small number of environmental variables that were highly correlated 
-with other environmental variables.
+We examine the effectiveness of recently developed variable
+selection algorithms using simulated and real data. Our ultimate goal is to 
+determine the environmental variables that are most important in shaping
+plant functional trait distribution patters in the Cape Floristic Region.
+Using simulated data, we 
+know *a priori* the functional relationships between environmental conditions 
+and trait values. Because we are interested in understanding the effects of 
+multi-collinearity on the accuracy of the Curtis and Ghosh method, in 
+simulating our new trait, we purposely used a small number of environmental 
+variables that were highly correlated with other environmental variables. 
+After showing the effectiveness of these methods on simulated data, and 
+determining the bounds of signal to noise relationships that yield accurate
+results, we apply these methods to three datasets of plant functional traits
+collected in the CFR. 
 
 # Environmental variables
 
@@ -113,7 +119,7 @@ for the `r sum( prot_pel_df$genus == "Protea")` *Protea* observations,
 which came from `r length( unique( prot_pel_df$Site_location ) )` different locations.
 In the figure below, we plot the simulated trait value versus each of the
 15 environmental conditions (rows) for 11 different $sigma^2$ values (columns), 
-for simulation scenario (1) above (i.e., three equal $\beta$ valeus). 
+for simulation scenario (1) above (i.e., three equal $\beta$ values). 
 Plots include a linear regression fit line (blue).
 
 ```{r trait_fig, echo=FALSE, message=FALSE, fig.height=20, fig.width=20}
@@ -168,7 +174,7 @@ kable( SNR, digits = 2 )
 
 # Results
 
-Below are historgrams of CG results for various simulations. Also included
+Below are histograms of CG results for various simulations. Also included
 are the number of non 0s for each coefficient (i.e., the number of times
 a variable was selected).
 

@@ -48,7 +48,7 @@ prot_pel_env_cor <-
 clim_vars_beta <- rep( 0, length( clim_vars ) )
 
 ## Make vector of noise levels
-noise_vect <- seq( from = 0, to = 1, by = 0.1 )
+noise_vect <- seq( from = 0, to = 10, by = 0.5 )
 
 ## Use dim_reduce_generate_sim_data function to create a dataset of 
 ## simulated values with various degrees of noise
