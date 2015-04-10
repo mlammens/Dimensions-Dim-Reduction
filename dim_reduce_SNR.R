@@ -14,10 +14,10 @@
 #' number of columns of X_obs
 ## ************************************************************************** ##
 
-## Development code
-X_obs <- as.matrix( filter( prot_pel_df, genus == "Protea" )[ clim_vars ] )
-beta <- sim_fit[[33]]$BUGSoutput$mean$beta
-y_obs <- sim_trait_df$sim_trait_noise_1noeq
+# ## Development code
+# X_obs <- as.matrix( filter( prot_pel_df, genus == "Protea" )[ clim_vars ] )
+# beta <- sim_fit[[33]]$BUGSoutput$mean$beta
+# y_obs <- sim_trait_df$sim_trait_noise_1noeq
 
 dim_reduce_SNR <- function( X_obs, y_obs, beta ){
   

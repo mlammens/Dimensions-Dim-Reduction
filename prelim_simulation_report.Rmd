@@ -184,10 +184,10 @@ We used the following JAGS parameters: 2 chains, iterations = 36,250,
 burn-in = 5,000, and thinning = 25. Once values are compiled, the result
 is 2500 coefficient values for each environmental variable.
 
-## Coefficients = 0.8, Noise = 0.4
+## Coefficients = 0.8, Noise = 0.5
 
 ```{r echo=FALSE, message=FALSE, fig.height=14, fig.width=14 }
-beta_temp <- sim_fit$sim_trait_noise_0.4_3eq$BUGSoutput$sims.list$beta
+beta_temp <- sim_fit$sim_trait_noise_0.5_3eq$BUGSoutput$sims.list$beta
 beta_temp <- as.data.frame( beta_temp )
 names( beta_temp ) <- clim_vars
 
@@ -203,10 +203,10 @@ nonzero_tbl <- as.data.frame( t( nonzero_tbl ) )
 
 ```
 
-## Coefficients = 0.8 and 0.2, Noise = 0.1
+## Coefficients = 0.8 and 0.2, Noise = 0.5
 
 ```{r echo=FALSE, message=FALSE, fig.height=14, fig.width=14 }
-beta_temp <- sim_fit$sim_trait_noise_0.1_2eq$BUGSoutput$sims.list$beta
+beta_temp <- sim_fit$sim_trait_noise_0.5_2eq$BUGSoutput$sims.list$beta
 beta_temp <- as.data.frame( beta_temp )
 names( beta_temp ) <- clim_vars
 
@@ -220,10 +220,10 @@ nonzero_tbl <- rbind( nonzero_tbl, apply( beta_temp, MARGIN = 2, FUN = function(
 
 ```
 
-## Coefficients = 0.8, Noise = 0.8
+## Coefficients = 0.8, Noise = 5
 
 ```{r echo=FALSE, message=FALSE, fig.height=14, fig.width=14 }
-beta_temp <- sim_fit$sim_trait_noise_0.8_3eq$BUGSoutput$sims.list$beta
+beta_temp <- sim_fit$sim_trait_noise_5_3eq$BUGSoutput$sims.list$beta
 beta_temp <- as.data.frame( beta_temp )
 names( beta_temp ) <- clim_vars
 
@@ -241,7 +241,7 @@ nonzero_tbl <- rbind( nonzero_tbl, apply( beta_temp, MARGIN = 2, FUN = function(
 ## Coefficients = 0.8, 0.5, and 0.2, Noise = 0.5
 
 ```{r echo=FALSE, message=FALSE, fig.height=14, fig.width=14 }
-beta_temp <- sim_fit$sim_trait_noise_0.5noeq$BUGSoutput$sims.list$beta
+beta_temp <- sim_fit$sim_trait_noise_0.5_noeq$BUGSoutput$sims.list$beta
 beta_temp <- as.data.frame( beta_temp )
 names( beta_temp ) <- clim_vars
 
