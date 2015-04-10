@@ -87,7 +87,7 @@ clim_vars_beta[ which( clim_vars == "MMP.07" ) ] <- 0.8
 clim_vars_beta[ which( clim_vars == "MTmin.07" ) ] <- 0.5
 clim_vars_beta[ which( clim_vars == "Elevation" ) ] <- 0.2
 
-sim_trait_df_noeq <- lapply( noise_vect, dim_reduce_generate_sim_data, 
+sim_trait_df_no_eq <- lapply( noise_vect, dim_reduce_generate_sim_data, 
                              df = filter( prot_pel_df, genus == "Protea" ), 
                              clim_vars = clim_vars, 
                              clim_vars_beta = clim_vars_beta,
@@ -97,7 +97,7 @@ sim_trait_df_noeq <- lapply( noise_vect, dim_reduce_generate_sim_data,
 ## -------------------------------------------------------------------------- ##
 ## Merge simulate traits
 
-sim_trait_df <- c( sim_trait_df_3_eq, sim_trait_df_2_eq, sim_trait_df_noeq )
+sim_trait_df <- c( sim_trait_df_3_eq, sim_trait_df_2_eq, sim_trait_df_no_eq )
 
 
 ## Format into a data.frame and name columns
