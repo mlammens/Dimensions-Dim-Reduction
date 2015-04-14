@@ -1,7 +1,10 @@
 ---
-title: "Preliminary Simulation Results"
-author: "Matthew E. Aiello-Lammens"
-output: html_document
+title: "Dealing with multi-collinearity when examining trait x environment relationships"
+author: |
+  | name: "Matthew E. Aiello-Lammens"
+  | name: "Xiaojing Wang"
+  | name: "Kent Holsinger"
+utput: html_document
 ---
 
 ```{r file-settings, include=FALSE }
@@ -20,6 +23,18 @@ load( "Preliminary.RData" )
 library( knitr )
 ```
 
+# Introduction
+
+Ecological patterns and processes are influenced by multiple factors. Mutiple regression
+methods are one way to account more many factors simultaneously. However, colinearity 
+among factors (or predictor variables), while potentially important for understanding
+biological responses of species, can result in difficult model interpretations. This 
+is because colinearity can result in incorrect model fits, in accurate estimates of 
+regression coefficients, and unstable model results. In this paper we use a recent 
+method developed by Curtis and Ghosh (@Curtis2007) to examine trait by environment 
+relationships in two seperate clades and communities of plants observed in the Cape 
+Floristic Region (CFR).
+
 # Objective
 
 We examine the effectiveness of recently developed variable
@@ -37,7 +52,26 @@ determining the bounds of signal to noise relationships that yield accurate
 results, we apply these methods to three datasets of plant functional traits
 collected in the CFR. 
 
-# Environmental variables
+# Methods
+
+Our study region is the Cape Floristic Region of South Africa, a region characterized
+by high alpha and beta taxonomic diversity (REF), as well as high endemism. Functional
+trait data were collected over multiple years at multiple locations. A previous analysis
+of a subset of these data (@Mitchell2014) has suggested that ...
+
+That earlier analysis differed from the present in that the underlying model was multi-factor,
+multi-response, where as the present analysis is only multi-response. However, the present
+analysis aims to examine the effects of many more predictor variables than was either 
+computationally feasible, or interpretable, in the previous analysis.
+
+We collected values for multiple environmental conditions for all sampling locations using
+two primary sources of data Schulze (@Schulze2007) and Wilson and Silander (@Wilson2014). 
+These values are primarily related to climatic conditions. We collected greater than ten
+variables, which is much greater than in the previous analysis (@Mitchel2014)
+
+
+
+## Environmental variables
 
 We are working with 15 different environmental variables: 
 
