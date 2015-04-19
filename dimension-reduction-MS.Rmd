@@ -1,9 +1,9 @@
 ---
 title: "Dealing with multi-collinearity when examining trait x environment relationships"
 author: |
-  | name: "Matthew E. Aiello-Lammens"
-  | name: "Xiaojing Wang"
-  | name: "Kent Holsinger"
+  - name: "Matthew E. Aiello-Lammens"
+  - name: "Xiaojing Wang"
+  - name: "Kent Holsinger"
 utput: html_document
 ---
 
@@ -25,15 +25,17 @@ library( knitr )
 
 # Introduction
 
-Ecological patterns and processes are influenced by multiple factors. Mutiple regression
-methods are one way to account more many factors simultaneously. However, colinearity 
-among factors (or predictor variables), while potentially important for understanding
-biological responses of species, can result in difficult model interpretations. This 
-is because colinearity can result in incorrect model fits, in accurate estimates of 
-regression coefficients, and unstable model results. In this paper we use a recent 
-method developed by Curtis and Ghosh (@Curtis2007) to examine trait by environment 
-relationships in two seperate clades and communities of plants observed in the Cape 
-Floristic Region (CFR).
+Ecological patterns and processes are influenced by multiple factors. Mutiple 
+regressioncmethods are one way to account for many factors simultaneously. 
+However, colinearity among factors (or predictor variables), while potentially 
+important for understanding biological responses of species, can result in 
+difficult model interpretations. This is because colinearity can result in 
+incorrect model fits, in accurate estimates of regression coefficients, and 
+unstable model results. In this paper we use a recent method developed by 
+Curtis and Ghosh (@Curtis2007) to examine trait by environment relationships, 
+where we simulated species trait values using environmental conditions of 
+occurrences of species in two clades located in the Cape Floristic Region (CFR)
+of South Africa.
 
 # Objective
 
@@ -254,10 +256,10 @@ nonzero_tbl <- rbind( nonzero_tbl, apply( beta_temp, MARGIN = 2, FUN = function(
 
 ```
 
-## Coefficients = 0.8, Noise = 5
+## Coefficients = 0.8, Noise = 2
 
 ```{r echo=FALSE, message=FALSE, fig.height=14, fig.width=14 }
-beta_temp <- sim_fit$sim_trait_noise_5_3eq$BUGSoutput$sims.list$beta
+beta_temp <- sim_fit$sim_trait_noise_2_3eq$BUGSoutput$sims.list$beta
 beta_temp <- as.data.frame( beta_temp )
 names( beta_temp ) <- clim_vars
 
@@ -291,7 +293,7 @@ nonzero_tbl <- rbind( nonzero_tbl, apply( beta_temp, MARGIN = 2, FUN = function(
 ```
 
 ```{r format_tble}
-noise <- c( 0.4, 0.1, 0.8, 0.5 )
+noise <- c( 0.5, 0.5, 2.0, 0.5 )
 MMP.07_sig <- c( 0.8, 0.8, 0.8, 0.8 )
 MTmin.07_sig <- c( 0.8, 0.2, 0.8, 0.5 )
 Elevation_sig <- c( 0.8, 0.2, 0.8, 0.2 )
