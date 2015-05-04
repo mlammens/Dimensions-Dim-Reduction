@@ -26,50 +26,55 @@ library( knitr )
 # Introduction
 
 Ecological patterns and processes are influenced by multiple factors. Mutiple 
-regressioncmethods are one way to account for many factors simultaneously. 
-However, colinearity among factors (or predictor variables), while potentially 
+regression methods offer one way to examine the 
+influence of many factors (i.e., predictor variables) simultaneously. 
+However, colinearity among factors, while potentially 
 important for understanding biological responses of species, can result in 
 difficult model interpretations. This is because colinearity can result in 
-incorrect model fits, in accurate estimates of regression coefficients, and 
+incorrect model fits, inaccurate estimates of regression coefficients, and 
 unstable model results. In this paper we use a recent method developed by 
-Curtis and Ghosh (@Curtis2007) to examine trait by environment relationships, 
-where we simulated species trait values using environmental conditions of 
-occurrences of species in two clades located in the Cape Floristic Region (CFR)
-of South Africa.
+Curtis and Ghosh (@Curtis2011) to examine trait by environment relationships
+for both simulated and real species. 
+Our goal is to introduce this method to ecologists and evolutionary biologists,
+and to assess its effectiveness and utility in these fields. 
+We do this by examining simulated trait by environment relationships,
+where we created species trait values using environmental conditions associated
+with occurrences of plant species in the genus *Protea* located in the 
+Cape Floristic Region (CFR) of South Africa.
+We then apply this method to real trait by environment relationships for
+this clade.
 
-# Objective
+## Why simulate?
 
-We examine the effectiveness of recently developed variable
-selection algorithms using simulated and real data. Our ultimate goal is to 
-determine the environmental variables that are most important in shaping
-plant functional trait distribution patters in the Cape Floristic Region.
 Using simulated data, we 
 know *a priori* the functional relationships between environmental conditions 
 and trait values. Because we are interested in understanding the effects of 
-multi-collinearity on the accuracy of the Curtis and Ghosh method, in 
+multi-collinearity on the accuracy of variable selection methods, in 
 simulating our new trait, we purposely used a small number of environmental 
 variables that were highly correlated with other environmental variables. 
-After showing the effectiveness of these methods on simulated data, and 
-determining the bounds of signal to noise relationships that yield accurate
-results, we apply these methods to three datasets of plant functional traits
-collected in the CFR. 
+
 
 # Methods
 
-Our study region is the Cape Floristic Region of South Africa, a region characterized
-by high alpha and beta taxonomic diversity (REF), as well as high endemism. Functional
-trait data were collected over multiple years at multiple locations. A previous analysis
-of a subset of these data (@Mitchell2014) has suggested that ...
+Our study region is the Cape Floristic Region of South Africa, a region 
+characterized by high alpha and beta taxonomic diversity (@Linder2003), as well 
+as high endemism. Functional trait data were collected over multiple years at 
+multiple locations. A previous analysis of a subset of these data 
+(@Mitchell2014) has suggested that ...
 
-That earlier analysis differed from the present in that the underlying model was multi-factor,
-multi-response, where as the present analysis is only multi-response. However, the present
-analysis aims to examine the effects of many more predictor variables than was either 
-computationally feasible, or interpretable, in the previous analysis.
+An earlier analysis differed from the present in that the underlying model 
+was multi-factor, multi-response, where as the present analysis is only 
+multi-response. However, the present analysis aims to examine the effects of 
+many more predictor variables than was either computationally feasible, or 
+interpretable, in the previous analysis.
 
-We collected values for multiple environmental conditions for all sampling locations using
-two primary sources of data Schulze (@Schulze2007) and Wilson and Silander (@Wilson2014). 
-These values are primarily related to climatic conditions. We collected greater than ten
-variables, which is much greater than in the previous analysis (@Mitchel2014)
+We collected values for multiple environmental conditions for all sampling 
+locations using two primary sources of data Schulze (@Schulze2007) and Wilson 
+and Silander (@Wilson2014). These values are primarily related to climatic 
+conditions. We collected greater than ten variables, which is much greater 
+than in the previous analysis (@Mitchel2014). With this many predictor 
+variables it is important to have some way of reducing the dimensionality
+in order to make easier interpretations of results. 
 
 
 
@@ -126,6 +131,60 @@ And the following are highly **negatively correlated ( < -0.8 )**
 * MTmin.07 - Elevation
 
 # Simulatated trait values
+
+Curtis and Ghosh (@Curtis2011) presented results comparing their variable
+selection approach to six other methods (see Figure 5.1 in @Curtis2011),
+using multiple simulation scenarios. These scenarios were similar to those
+used by (@Bondell2008a) and (REF Tibshirani 1996). Both @Curtis2011 and 
+@Bondell2008a compared the ability of thier respective varaible selection 
+methods to produce models that predict simulated data well, however they 
+did not report on the ability of their models to return the *a priori* set
+regression coefficients used in these simulation models. As we are most 
+interested in using these methods to understand and interpret relationships
+between observed environmental conditions and measures functiontal traits,
+it is important that we employ a method that returns accurate estimates for
+regression coefficients.
+Therefore, we setup
+the following simulations to test how well variable selection
+methods did at determining the predictor variables most important in trait 
+values, considering 1) different degrees of signal to noise, 2) different 
+degrees of covariation among measured environmental predictors, and 3)
+missingness of key environmental variables.
+
+
+**Simulation Scenarios**
+
+All scenarios:
+* potentially 10 environmental variables
+* three variables define trait value
+* multiple different levels of noise
+
+S1:
+* Standardized regression coefficient = 0.8 for all three important variables
+* Each variable is relatively uncorrelated with the other two important 
+variables (corr < XXX)
+* Each variable is highly correlated with an unimportant variable
+
+S2:
+* Std reg coeffs = {0.8, 0.5, 0.2} 
+* Same correlation structure as S1.
+
+S3: 
+* Std reg coeffs = {0.8, 0.2, 0.2}
+* Same correlation structure as S1.
+
+S4:
+* Std reg coeffs = {0.8, 0.8, -0.8}
+* Same correlation structure as S1.
+
+S5:
+* Standardized regression coefficient = 0.8 for all three important variables
+* Important variables are highly correlated with each other.
+
+S6: 
+* Standardized regression coefficient = 0.8 for all three important variables
+* Missing one of the important variables.
+
 
 Based on the correlation analysis results, we chose to make our 
 **simulated trait a function of MMP.07, MTmin.07, and Elevation**.
@@ -209,6 +268,8 @@ kable( SNR, digits = 2 )
 ```
 
 # Results
+
+## Simulations
 
 Below are histograms of CG results for various simulations. Also included
 are the number of non 0s for each coefficient (i.e., the number of times
