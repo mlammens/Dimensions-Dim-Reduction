@@ -128,6 +128,16 @@ mean( sig_noise_df$sd_noise_0.5, na.rm = TRUE ) / 0.25
 ## ******************************************************************** ##
 ## ******************************************************************** ##
 
+## -------------------------------------------------------------------------- ##
+## To-Do:
+## We want to run the simulations so that idealy we have at least 50-100
+## replications for each scenario, for each noise level. Currently,
+## the fit object is > 400 Mb, so we need to reconsider this if we are
+## going to produce 100X more runs.
+##
+## I think I'll begin by ramping up to 10X so that we can decide 
+## on exactly what metrics should be saved.
+
 ## Create and empty list object to store JAGS model fit results in
 sim_fit <- vector( mode = "list" )
 
