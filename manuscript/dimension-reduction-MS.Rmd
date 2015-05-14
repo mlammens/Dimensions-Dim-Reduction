@@ -9,14 +9,14 @@ utput: html_document
 
 ```{r file-settings, include=FALSE }
 ## Set package options
-#knitr::opts_knit$set( root.dir = "../" )
+knitr::opts_knit$set( root.dir = "../" )
 knitr::opts_chunk$set( message=FALSE, warning=FALSE, fig.width = 6.5, fig.height = 6.5, echo=FALSE )
 ```
 
 
 ```{r, include=FALSE}
 ## Source setup script
-source( "dim_reduce_setup.R" )
+source( "scripts/dim_reduce_setup.R" )
 ## Load data
 load( "Preliminary.RData" )
 
