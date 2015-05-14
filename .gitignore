@@ -31,3 +31,4 @@ temp.txt
 .Rhistory
 .RData
 *.RData
+*.Rproj
