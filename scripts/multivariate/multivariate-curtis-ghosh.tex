@@ -1,0 +1,33 @@
+\documentclass[12pt]{article}
+
+\newcommand{\bmx}{\mbox{\boldmath$x$}}
+\newcommand{\bmbeta}{\mbox{\boldmath$\beta$}}
+\newcommand{\bmSigma}{\mbox{\boldmath$\Sigma$}}
+\newcommand{\bmp}{\mbox{\boldmath$p$}}
+
+\title{Multivariate response version of Curtis \& Ghosh}
+\date{14 May 2015}
+\author{Kent Holsinger}
+
+\begin{document}
+
+\maketitle
+
+\begin{eqnarray*}
+y_{ij} &=& \mbox{trait $j$ in individual $i$, $i = 1,\dots,I$} \\
+x_{ik} &=& \mbox{covariate $k$ for individual $i$, $k = 1,\dots,K$} \\ 
+\beta_{jk} &=& \mbox{regression of trait $j$ on covariate $k$} \\
+y_{ij} | \bmx_i, \bmbeta, \bmSigma &\sim& \mbox{MVN}(\bmx_i^T\bmbeta,
+\bmSigma) \\
+\beta_{jk} &=& \theta_{jk}\gamma_{jk} \\
+\gamma_{jk} &\sim& \mbox{Bernoulli}(\pi_j) \\
+\theta_{jk} &=& \xi_{S_{jk}} \\
+S_{jk} &\sim& \mbox{Categorical}(p_{j1},\dots,p_{jM}) \\
+\xi_m &\sim& \mbox{N}(0, \sigma^2) \\
+\pi_j &\sim& \mbox{Unif}(0,1) \\
+\bmp_j &\sim& \mbox{Dirichlet}(1/M,\dots,1/M) \\
+1/\sigma^2 &\sim& \mbox{Gamma}(1,1) \\
+\Sigma^{-1} &\sim& \mbox{Wishart}(I,K+2) 
+\end{eqnarray*}
+
+\end{document}

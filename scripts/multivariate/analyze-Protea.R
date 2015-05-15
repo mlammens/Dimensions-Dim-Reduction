@@ -1,5 +1,5 @@
 ## ******************************************************************** ##
-## dim-reduce-multivariate.R
+## analyze-Protea.R
 ##
 ## Author: Kent Holsinger
 ## Date created: 2015-05-14
@@ -29,7 +29,7 @@ rm(list=ls())
 covars <- c("Stone_Vol", "P_Bray_II_mg_kg", "K_mg_kg", "Na_Exchangeable_cations_cmol_kg",
             "K_Exchangeable_cations_cmol_kg", "Ca_Exchangeable_cations_cmol_kg",
             "Mg_Exchangeable_cations_cmol_kg", "C", "Na", "K", "Ca", "Mg")
-response <- c("LMA")
+response <- c("LMA","LWratio","LDMC","Succulence","Canopy_area")
 
 is.complete <- function(x) {
   return(sum(is.na(x)) == 0)
@@ -43,10 +43,9 @@ standardize <- function(x) {
 
 dim_reduce <- function( X, y, 
                         M_add = 25,
-                        model_file = "curtis_ghosh_example.jags",
+                        model_file = "scripts/multivariate/analyze-protea.jags",
                         use_jags_test_pars = TRUE )
 {
-    
 
   ## Check that X is a matrix
   if( !is.matrix( X ) ){
@@ -64,9 +63,18 @@ dim_reduce <- function( X, y,
   ## Set number of regression coefficients
   K <- ncol( X )
   
+  ## Set number of response variables
+  ##
+  n.dim <- ncol( y )
+  
+  ## Set parameters for Wishart prior
+  ##
+  Omega <- diag(x=1.0, nrow=n.dim, ncol=n.dim)
+  wish.nu <- nrow(Omega) + 2
+  
   ## Define the variable names used for jags data
   jags.data <-
-    c( "X", "n.samp", "M", "K", "y" )
+    c( "X", "n.samp", "M", "K", "y", "Omega", "wish.nu", "n.dim" )
       
   ## Set JAGs parameters
   if( use_jags_test_pars ){
@@ -123,6 +131,6 @@ x <- apply(x, 2, standardize)
 ## select response variables
 ##
 y <- protea[,response]
-y <- standardize(y)
+y <- apply(y, 2, standardize)
 
 fit <- dim_reduce(x, y)
