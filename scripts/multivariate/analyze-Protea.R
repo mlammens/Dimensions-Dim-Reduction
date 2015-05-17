@@ -19,7 +19,7 @@
 #' @param model_file File containing JAGS model
 #' @param use_jags_test_pars Use JAGS test parameters, results in faster, but
 #' less accurate model results (default = TRUE)
-##   
+##
 ## ******************************************************************** ##
 
 library(R2jags)
@@ -41,7 +41,7 @@ standardize <- function(x) {
   return((x-mu)/sdev)
 }
 
-dim_reduce <- function( X, y, 
+dim_reduce <- function( X, y,
                         M_add = 25,
                         model_file = "scripts/multivariate/analyze-protea.jags",
                         use_jags_test_pars = TRUE )
@@ -49,33 +49,35 @@ dim_reduce <- function( X, y,
 
   ## Check that X is a matrix
   if( !is.matrix( X ) ){
-    X <- as.matrix( X ) 
+    X <- as.matrix( X )
   }
-  
+  ## Add intercept column to X
+  X <- cbind(rep(1,nrow(x)), X)
+
   ## Define model settings - number of samples
   n.samp <- nrow( X )
-  
-  ## The next parameter, M, is somewhat arbitrarily set. The authors 
-  ## write use a "suitably large M", and define it as p + 25, where 
+
+  ## The next parameter, M, is somewhat arbitrarily set. The authors
+  ## write use a "suitably large M", and define it as p + 25, where
   ## p is the number of coefficients in thier examples
   M <- ncol( X ) + M_add
-  
+
   ## Set number of regression coefficients
   K <- ncol( X )
-  
+
   ## Set number of response variables
   ##
   n.dim <- ncol( y )
-  
+
   ## Set parameters for Wishart prior
   ##
   Omega <- diag(x=1.0, nrow=n.dim, ncol=n.dim)
   wish.nu <- nrow(Omega) + 2
-  
+
   ## Define the variable names used for jags data
   jags.data <-
     c( "X", "n.samp", "M", "K", "y", "Omega", "wish.nu", "n.dim" )
-      
+
   ## Set JAGs parameters
   if( use_jags_test_pars ){
     ## Testing parameters
@@ -90,26 +92,26 @@ dim_reduce <- function( X, y,
     n.iter <- 5*72500
     n.thin <- 5*50
   }
-  
+
   ## Make a vector of parameters to track in JAGs
   jags.par <-
     c( "beta", "gamma", "S", "theta", "xi", "pi" )
-  
+
   ## Run jags model
   fit <-  jags( data = jags.data,
                 inits = NULL,
                 parameters = jags.par,
-                model.file = model_file, 
+                model.file = model_file,
                 n.chains = n.chains,
                 n.burnin = n.burnin,
                 n.iter = n.iter,
                 n.thin = n.thin,
                 DIC = TRUE,
                 working.directory = "." )
-  
+
   ## Return the jags model fit
   return( fit )
-  
+
 }
 
 ## Read trait and site data and merge into single data frame
