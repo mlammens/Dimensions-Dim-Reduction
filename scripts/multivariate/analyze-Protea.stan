@@ -8,16 +8,16 @@ data {
 }
 
 parameters {
-  vector[K] beta[j];   // regression coefficients, beta[k,1] is intercept
+  vector[K] beta[nDim];   // regression coefficients, beta[k,1] is intercept
   simplex[K] p[nDim];
-  real<lower=0,upper=1> pi;
+  vector[nDim] pi;
+  vector[M] xi;
 }
 
 transformed parameters {
   matrix[nSamp,nDim] mu;
   matrix[nDim,K] theta;
   matrix[nDim,K] gamma;
-  int<lower=1> S[nDim,K];
 
   // predicted values
   for (j in 1:nDim) {
@@ -30,8 +30,7 @@ transformed parameters {
   for (k in 1:K) {
     for (j in 1:nDim) {
       theta[j,k] <- xi[S[j,k]];
-      S[j,k] ~ categorical(p[j])
-      gamma[j,k] ~ bernoulli(pi)
+      gamma[j,k] ~ bernoulli(pi[j])
       beta[j,k] <- theta[j,k]*gamma[j,k];
     }
   }
@@ -39,10 +38,6 @@ transformed parameters {
   // coefficients for Dirichlet
   for (m in 1:M) {
     a.p[m] <- 1.0/M;
-  }
-  // coefficient clusters
-  for (m in 1:M) {
-    xi[m] ~ normal(0.0, 1.0);
   }
 }
 
@@ -54,8 +49,23 @@ model {
   Sigma ~ wishart(nu, Omega);
   pi ~ uniform(0.0,1.0);
 
+  for (m in 1:M) {
+    xi[m] ~ normal(0.0, 1.0);
+  }
+
   // likelihood
   for (i in 1:nSamp) {
     y[i] ~ multi_normal(mu, Sigma);
   }
 }
+
+generated quantities {
+  int<lower=1> S[nDim,K];
+
+  for (k in 1:K) {
+    for (j in 1:nDim) {
+      S[j,k] ~ categorical(p[j])
+    }
+  }
+}
+

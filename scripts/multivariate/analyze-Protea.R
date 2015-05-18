@@ -22,8 +22,6 @@
 ##
 ## ******************************************************************** ##
 
-library(R2jags)
-
 rm(list=ls())
 
 covars <- c("Stone_Vol", "P_Bray_II_mg_kg", "K_mg_kg", "Na_Exchangeable_cations_cmol_kg",
@@ -41,10 +39,10 @@ standardize <- function(x) {
   return((x-mu)/sdev)
 }
 
-dim_reduce <- function( X, y,
-                        M_add = 25,
-                        model_file = "scripts/multivariate/analyze-protea.jags",
-                        use_jags_test_pars = TRUE )
+dim_reduce <- function(X, y,
+                       M_add = 25,
+                       use_jags_test_pars=TRUE,
+                       use_jags=TRUE)
 {
 
   ## Check that X is a matrix
@@ -78,36 +76,61 @@ dim_reduce <- function( X, y,
   jags.data <-
     c( "X", "n.samp", "M", "K", "y", "Omega", "wish.nu", "n.dim" )
 
-  ## Set JAGs parameters
-  if( use_jags_test_pars ){
-    ## Testing parameters
-    n.chains <- 2
-    n.burnin <- 5*1000
-    n.iter <- 5*7250
-    n.thin <- 5*5
+  if (use_jags) {
+    library(R2jags)
+
+    model_file="scripts/multivariate/analyze-protea.jags"
+    ## Set JAGs parameters
+    if( use_jags_test_pars ){
+      ## Testing parameters
+      n.chains <- 2
+      n.burnin <- 5*1000
+      n.iter <- 5*7250
+      n.thin <- 5*5
+    } else {
+      ## Final model pars
+      n.chains <- 4
+      n.burnin <- 5*10000
+      n.iter <- 5*72500
+      n.thin <- 5*50
+    }
+
+    ## Make a vector of parameters to track in JAGs
+    jags.par <-
+      c( "beta", "gamma", "S", "theta", "xi", "pi", "Sigma" )
+
+    ## Run jags model
+    fit <-  jags(data = jags.data,
+                 inits = NULL,
+                 parameters = jags.par,
+                 model.file = model_file,
+                 n.chains = n.chains,
+                 n.burnin = n.burnin,
+                 n.iter = n.iter,
+                 n.thin = n.thin,
+                 DIC = TRUE,
+                 working.directory = ".")
   } else {
-    ## Final model pars
-    n.chains <- 4
-    n.burnin <- 5*10000
-    n.iter <- 5*72500
-    n.thin <- 5*50
+    library(rstan)
+
+    model_file="scripts/multivariate/analyze-protea.stan"
+    fit <- stan(model_file,
+                data=list(nSamp=n.samp,
+                          nDim=n.dim,
+                          K=K,
+                          M=M,
+                          y=y,
+                          X=X,
+                          Omega=Omega,
+                          nu=wish.nu),
+                pars=c("beta",
+                       "gamma",
+                       "S",
+                       "theta",
+                       "xi",
+                        "pi",
+                       "Sigma"))
   }
-
-  ## Make a vector of parameters to track in JAGs
-  jags.par <-
-    c( "beta", "gamma", "S", "theta", "xi", "pi" )
-
-  ## Run jags model
-  fit <-  jags( data = jags.data,
-                inits = NULL,
-                parameters = jags.par,
-                model.file = model_file,
-                n.chains = n.chains,
-                n.burnin = n.burnin,
-                n.iter = n.iter,
-                n.thin = n.thin,
-                DIC = TRUE,
-                working.directory = "." )
 
   ## Return the jags model fit
   return( fit )
@@ -135,4 +158,4 @@ x <- apply(x, 2, standardize)
 y <- protea[,response]
 y <- apply(y, 2, standardize)
 
-fit <- dim_reduce(x, y)
+fit <- dim_reduce(x, y, use_jags=FALSE)
