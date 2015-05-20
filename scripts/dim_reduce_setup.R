@@ -44,7 +44,7 @@ traits <- c( "LMA", "Canopy_area", "LWratio", "FWC",
 ## Load custum funtions
 ## -------------------------------------------------------------------- ##
 source( "scripts/format_prot_pel_data.R" )
-source( "scripts/dim_reduce_generate_sim_data.R" )
-source( "scripts/dim_reduce_run_CG_JAGS.R" )
-source( "scripts/dim_reduce_SNR.R" )
+source( "scripts/generate_sim_data.R" )
+source( "scripts/run_CG_JAGS.R" )
+source( "scripts/calc_SNR.R" )
 

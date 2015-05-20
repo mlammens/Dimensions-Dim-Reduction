@@ -12,7 +12,7 @@
 ## -------------------------------------------------------------------- ##
 ## Source setup and function files
 ## -------------------------------------------------------------------- ##
-source( "dim_reduce_setup.R" )
+source( "scripts/dim_reduce_setup.R" )
 
 ## -------------------------------------------------------------------- ##
 ## Get formated protea and pelargonium dataset
@@ -28,27 +28,46 @@ prot_pel_df <- format_prot_pel_data( dim_red_basedir = "",
 
 ## Calculate correlations
 prot_pel_env_cor <- 
-  cor( select( prot_pel_df, which( names( prot_pel_df ) %in% clim_vars ) ) )
+  cor( filter( prot_pel_df, genus == "Protea" ) %>% 
+         dplyr::select( which( names( prot_pel_df ) %in% clim_vars ) ) )
 
 
 ## ******************************************************************** ##
 ## Generate simulated data based on correlation relationships
 ## ***
-## As per discussions with Kent and Xiaojing, we want to simulate a 
-## trait that is related to only three variables, but those variables
-## are highly correlated with other variables. We also want to examine
-## the effects of various levels of noise.
+## We want to simulate a trait that is a function of three  predictor 
+## variables. These variables should be highly correlated with other 
+## variables. We also want to examine the effects of various levels of 
+## noise.
+##
+## We use six different simulation schemes, as documented in the 
+## manuscript. For each scheme, we examine the influence of multiple
+## different levels of noise. Each scheme x noise pair is replicated
+## 50 times.
 ## ******************************************************************** ##
 
-## -------------------------------------------------------------------- ##
-## Generate a simulated Protea trait
-## -------------------------------------------------------------------- ##
+## -------------------------------------------------------------------------- ##
+## Noise
+## ***
+## Make vector of noise levels to be used for all simulations
+## -------------------------------------------------------------------------- ##
+noise_vect <- seq( from = 0, to = 10, by = 0.5 )
+
+
+## -------------------------------------------------------------------------- ##
+## Simulation scheme 1
+## ***
+## Three standardized coefficients = 0.8
+## Each of the three variables are relatively uncorrelated with the 
+## other two, but higly correlated with several other vars.
+##            MMP.07  Elev
+## MTmax.01   -0.17   -0.51
+## MMP.07             -0.46
+## -------------------------------------------------------------------------- ##
 
 ## Set default trait regression coefficients
 clim_vars_beta <- rep( 0, length( clim_vars ) )
 
-## Make vector of noise levels
-noise_vect <- seq( from = 0, to = 10, by = 0.5 )
 
 ## Use dim_reduce_generate_sim_data function to create a dataset of 
 ## simulated values with various degrees of noise
@@ -57,7 +76,7 @@ noise_vect <- seq( from = 0, to = 10, by = 0.5 )
 ## First create trait for scenario with three environtmental
 ## variables, all which have the same influence
 clim_vars_beta[ which( clim_vars == "MMP.07" ) ] <- 0.8
-clim_vars_beta[ which( clim_vars == "MTmin.07" ) ] <- 0.8
+clim_vars_beta[ which( clim_vars == "MTmax.01" ) ] <- 0.8
 clim_vars_beta[ which( clim_vars == "Elevation" ) ] <- 0.8
 
 

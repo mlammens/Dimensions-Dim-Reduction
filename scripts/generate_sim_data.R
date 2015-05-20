@@ -1,5 +1,5 @@
 ## ******************************************************************** ##
-## dim_reduce_generate_sim_data.R
+## generate_sim_data.R
 ##
 ## Author: Matthew Aiello-Lammens
 ## Date Created: 2014-12-30
@@ -19,11 +19,12 @@
 #' error
 ## ******************************************************************** ##
 
-dim_reduce_generate_sim_data <- function( df, 
-                                          clim_vars, 
-                                          clim_vars_beta,
-                                          scale = TRUE,
-                                          noise ){
+generate_sim_data <- function( df, 
+                               clim_vars, 
+                               clim_vars_beta,
+                               scale = TRUE,
+                               noise ){
+
   ## Get predictors
   X <- as.matrix( df[ clim_vars ] )
   
