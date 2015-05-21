@@ -19,7 +19,7 @@
 # beta <- sim_fit[[33]]$BUGSoutput$mean$beta
 # y_obs <- sim_trait_df$sim_trait_noise_1noeq
 
-dim_reduce_SNR <- function( X_obs, y_obs, beta ){
+calc_SNR <- function( X_obs, y_obs, beta ){
   
   # Calculating SNR
   # Following Xiaojing's suggestions of looking at 

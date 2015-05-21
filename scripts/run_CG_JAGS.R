@@ -22,11 +22,11 @@
 ##   
 ## ******************************************************************** ##
 
-dim_reduce_run_CG_JAGS <- function( X, y, 
-                                    scale_x = FALSE, scale_y = FALSE,
-                                    M_add = 25,
-                                    model_file = "curtis_ghosh_example.jags",
-                                    use_jags_test_pars = TRUE ){
+run_CG_JAGS <- function( X, y, 
+                         scale_x = FALSE, scale_y = FALSE,
+                         M_add = 25,
+                         model_file = "curtis_ghosh_example.jags",
+                         use_jags_test_pars = TRUE ){
     
 
   ## Check that X is a matrix

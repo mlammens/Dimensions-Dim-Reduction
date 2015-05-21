@@ -5,16 +5,18 @@
 ## Date Created: 2014-12-30
 ##
 ## Purpose:
-## Generate simulation data using either protea or pelargonium data
+## Generate simulation data using a set of predictor variables (df).
+## This was specifically written with the dimensions-za protea/pelie dataset 
+## in ming.
 ##
 ## Args:
-#' @param df A data.frame the includes all of the climate variables
-#' measured
+#' @param df A data.frame of predictor variables. Specifically written assuming
+#' these variables are climate variables
 #' @param clim_vars A vector of the environmental / climate variables
-#' used to simulate the data
+#' in 'df' used to simulate a new trait
 #' @param clim_vars_beta Beta coefficient values to use in functional
 #' relationship of environmental vars to a trait value
-#' @param scale Scale predictor variables before simulating data
+#' @param scale Default = TRUE. Scale predictor variables before simulating data
 #' @param noise Standard deviation value to use in generation of random
 #' error
 ## ******************************************************************** ##
