@@ -2,6 +2,7 @@
 title: "Dealing with multi-collinearity when examining trait x environment relationships"
 author: |
   - name: "Matthew E. Aiello-Lammens"
+  - name: "Nora Mitchell"
   - name: "Xiaojing Wang"
   - name: "Kent Holsinger"
 utput: html_document
@@ -162,8 +163,8 @@ All scenarios:
 S1:
 * Standardized regression coefficient = 0.8 for all three important variables
 * Each variable is relatively uncorrelated with the other two important 
-variables (corr < XXX)
-* Each variable is highly correlated with an unimportant variable
+variables (abs(cor) < 0.51)
+* Each variable is highly correlated with at least one unimportant variable
 
 S2:
 * Std reg coeffs = {0.8, 0.5, 0.2} 
