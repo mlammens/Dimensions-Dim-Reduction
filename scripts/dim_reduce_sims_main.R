@@ -53,6 +53,13 @@ prot_pel_env_cor <-
 ## -------------------------------------------------------------------------- ##
 noise_vect <- seq( from = 0, to = 10, by = 0.5 )
 
+## -------------------------------------------------------------------------- ##
+## Default environmental variable coefficients
+## ***
+## Set the coefficients for all environemntal variables to 0, indicating
+## that they have no effect on the simulated trait
+## -------------------------------------------------------------------------- ##
+clim_vars_coef <- rep( 0, length( clim_vars ) )
 
 ## -------------------------------------------------------------------------- ##
 ## Simulation scheme 1
@@ -65,26 +72,58 @@ noise_vect <- seq( from = 0, to = 10, by = 0.5 )
 ## MMP.07             -0.46
 ## -------------------------------------------------------------------------- ##
 
-## Set default trait regression coefficients
-clim_vars_beta <- rep( 0, length( clim_vars ) )
+## Set simulation 1 coefficients
+sim1_coef <- clim_vars_coef
+sim1_coef[ which( clim_vars == "MMP.07" ) ] <- 0.8
+sim1_coef[ which( clim_vars == "MTmax.01" ) ] <- 0.8
+sim1_coef[ which( clim_vars == "Elevation" ) ] <- 0.8
+
+## Generate simulated traits for each level of noise, as per 
+## 'noise_vect' set above
+sim1_trait <- lapply( noise_vect, generate_sim_data, 
+                      df = filter( prot_pel_df, genus == "Protea" ), 
+                      clim_vars = clim_vars, 
+                      clim_vars_beta = sim1_coef,
+                      scale = TRUE )
+
+## Make the list of simulated traits X noise levels into a data.frame
+## This requires transposing, `t`, the data.frame returned from `ldply`
+sim1_trait_df <- t( ldply( sim1_trait ) )
+sim1_trait_df <- as.data.frame( sim1_trait_df )
+
+## Assign column names to the data.frame
+sim1_trait_names <- paste0( "noise_", noise_vect )
+names( sim1_trait_df ) <- sim1_trait_names
+
+## Merge the simulated trait values with the environmental predictors
+sim1_trait_df <- cbind( filter( prot_pel_df, genus == "Protea" ), 
+                        sim1_trait_df )
+
+## Run C&G JAGS model
+## -------------------------------------------------------------------------- ##
+
+## Create and empty list object to store JAGS model fit results in
+sim1_fit <- vector( mode = "list" )
+
+## Use a for loop to loop through all of the simulated traits
+for ( i in 1:length( sim1_trait_names ) ){ 
+  
+  sim1_fit[[ sim1_trait_names[ i ] ]] <-
+    run_CG_JAGS( X = sim1_trait_df[ clim_vars ], 
+                 y = sim1_trait_df[[ sim1_trait_names[ i ] ]], 
+                 scale_x = TRUE, 
+                 use_jags_test_pars = TRUE )
+}
 
 
-## Use dim_reduce_generate_sim_data function to create a dataset of 
-## simulated values with various degrees of noise
+
+
 
 ## -------------------------------------------------------------------------- ##
-## First create trait for scenario with three environtmental
-## variables, all which have the same influence
-clim_vars_beta[ which( clim_vars == "MMP.07" ) ] <- 0.8
-clim_vars_beta[ which( clim_vars == "MTmax.01" ) ] <- 0.8
-clim_vars_beta[ which( clim_vars == "Elevation" ) ] <- 0.8
+## Simulation scheme 2
+## ***
+## -------------------------------------------------------------------------- ##
 
-
-sim_trait_df_3_eq <- lapply( noise_vect, dim_reduce_generate_sim_data, 
-                        df = filter( prot_pel_df, genus == "Protea" ), 
-                        clim_vars = clim_vars, 
-                        clim_vars_beta = clim_vars_beta,
-                        scale = TRUE )
 
 ## -------------------------------------------------------------------------- ##
 ## Create trait for scenario with three environmental variables,
