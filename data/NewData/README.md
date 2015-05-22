@@ -7,6 +7,30 @@ Protea_Site_Data.csv--includes site names, GPS, field-site data, and soil data w
 
 Protea_Trait_Data.csv--includes all trait observations from 2011-2013, raw and derived variables. Recommend merging site and trait data using "Site_name".
 
-To do:
--add isotope data to trait file (when available)
--
+* indicates have not measured this trait on all individuals in populations, by design
+
+Traits to use:
+	d13C_12C *
+	Percent_N *
+	LMA
+	Stomatal_density_average *
+	Stomatal_pore_index_average *
+	Wood_density
+	area_lam
+	lam_width
+
+Climate variables to use:
+	pptcon
+	summer 
+	map
+	mat
+	tminave07
+	tmaxave01
+	P_Bray_II_mg_kg * 
+	Soil * (factor)
+	altitude
+	
+To do: Find stomatal data for 2013 samples
+
+	
+	
