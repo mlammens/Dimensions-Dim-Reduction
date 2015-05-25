@@ -16,18 +16,17 @@
 #' @param Y Vector of response values
 #' @param M_add Used to determine number of "labels", Curtis and Ghosh
 #' recommend the number of predictors + 25
-#' @param model_file File containing JAGS model
 #' @param use_jags_test_pars Use JAGS test parameters, results in faster, but
 #' less accurate model results (default = TRUE)
+#' @param use_jags (default = TRUE). If FALSE, use Stan for inference
 ##
 ## ******************************************************************** ##
 
 rm(list=ls())
 
-covars <- c("Stone_Vol", "P_Bray_II_mg_kg", "K_mg_kg", "Na_Exchangeable_cations_cmol_kg",
-            "K_Exchangeable_cations_cmol_kg", "Ca_Exchangeable_cations_cmol_kg",
-            "Mg_Exchangeable_cations_cmol_kg", "C", "Na", "K", "Ca", "Mg")
-response <- c("LMA","LWratio","LDMC","Succulence","Canopy_area")
+covars <- c("pptcon", "summer", "map", "mat", "tminave07c", "tmaxave01c", "P_Bray_II_mg_kg",
+            "alt")
+response <- c("d13C_12C", "Percent_N", "LMA","Wood_density","area_lam","lam_width")
 
 is.complete <- function(x) {
   return(sum(is.na(x)) == 0)
@@ -89,10 +88,10 @@ dim_reduce <- function(X, y,
       n.thin <- 5*5
     } else {
       ## Final model pars
-      n.chains <- 4
-      n.burnin <- 5*10000
-      n.iter <- 5*72500
-      n.thin <- 5*50
+      n.chains <- 5
+      n.burnin <- 10000
+      n.iter <- 60000
+      n.thin <- 50
     }
 
     ## Make a vector of parameters to track in JAGs
@@ -139,8 +138,8 @@ dim_reduce <- function(X, y,
 
 ## Read trait and site data and merge into single data frame
 ##
-traits <- read.csv("data/NewData/Protea_Trait_Data.csv", na.strings=".")
-sites <- read.csv("data/NewData/Protea_site_Data.csv", na.strings=".")
+traits <- read.csv("data/NewData/Protea_Trait_Data.csv", na.strings=c("NA","."))
+sites <- read.csv("data/NewData/Protea_Site_Data_FULL.csv", na.strings=c("NA","."))
 protea <- merge(traits, sites, by="Site_name")
 
 ## Exclude individuals with unscored traits or covariates
@@ -158,4 +157,4 @@ x <- apply(x, 2, standardize)
 y <- protea[,response]
 y <- apply(y, 2, standardize)
 
-fit <- dim_reduce(x, y, use_jags=FALSE)
+fit <- dim_reduce(x, y, use_jags_test_pars=FALSE, use_jags=TRUE)
