@@ -4,7 +4,7 @@ summarize.covar <- function(label, beta, gamma) {
   gamma.mu <- mean(gamma)
   beta.post <- beta[gamma>0]
   beta.mu <- mean(beta.post)
-  beta.int <- quantile(beta, c(0.025, 0.975))
+  beta.int <- quantile(beta.post, c(0.025, 0.975))
   line <- sprintf("%15s: %4.2 f     %6.3f (%6.3f, %6.3f)", label, gamma.mu, beta.mu, beta.int[1], beta.int[2])
   cat(line)
   if ((beta.int[2] < 0.0) || (beta.int[1] > 0.0)) {
