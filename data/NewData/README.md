@@ -13,23 +13,41 @@ Traits to use:
 	d13C_12C *
 	Percent_N *
 	LMA
-	Stomatal_density_average *
-	Stomatal_pore_index_average *
+	#Stomatal_density_average *
+	#Stomatal_pore_index_average *
 	Wood_density
 	area_lam
 	lam_width
 
 Climate variables to use:
-	pptcon
-	summer 
+	
+	#pptcon
+	#summer 
+	ratio
 	map
 	mat
 	tminave07
 	tmaxave01
-	P_Bray_II_mg_kg * 
-	Soil * (factor)
+	P_Bray_II_mg_kg 
+	K_Exchangeable_cations_cmol_kg
+	Ca_Exchangeable_cations_cmol_kg
+	C
+	temp_win
+	temp_spr
+	temp_sum
+	temp_aut
+	rain_win
+	rain_spr
+	rain_sum
+	rain_aut
+	apan_win
+	apan_spr
+	apan_sum
+	apan_aut
 	altitude
-	
+
+	where summer = dec, jan, feb; autumn = march, april, may; winter = june, july, august; spring = september, october, november
+	# = do not include anymore
 To do: Find stomatal data for 2013 samples
 
 	
