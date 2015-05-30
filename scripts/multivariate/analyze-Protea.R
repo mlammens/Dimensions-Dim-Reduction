@@ -50,7 +50,13 @@ dim_reduce <- function(X, y,
                        use_jags_test_pars=TRUE,
                        use_jags=TRUE)
 {
-
+  ## Check that X is a matrix
+  if( !is.matrix( X ) ){
+    X <- as.matrix( X )
+  }
+  ## Add intercept column to X
+  X <- cbind(rep(1,nrow(x)), X)
+  
   ## Define model settings - number of samples
   n.samp <- nrow( X )
 
