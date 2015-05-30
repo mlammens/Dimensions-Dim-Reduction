@@ -51,7 +51,7 @@ dim_reduce <- function(X, y,
                        use_jags=TRUE)
 {
 
- sou ## Define model settings - number of samples
+  ## Define model settings - number of samples
   n.samp <- nrow( X )
 
   ## The next parameter, M, is somewhat arbitrarily set. The authors
