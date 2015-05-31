@@ -1,0 +1,37 @@
+model{
+  for(i in 1:n.samp) {
+    y[i] ~ dnorm(mu[i,1:n.dim], tau.y)
+    for (j in 1:n.dim) {
+      mu[i,j] <- inprod(X[i,],beta[j,])
+    }
+  }
+
+  for(m in 1:M) {  # M is adequately large
+    xi[m] ~ dnorm(0.0,tau)
+  }
+
+  for(k in 1:K) {  # K is the number of regression coefficients
+    for (j in 1:n.dim) {
+      theta[j,k] <- xi[S[j,k]]
+      S[j,k] ~ dcat(p[j,1:M])
+      gamma[j,k] ~ dbern(pi[j])
+      beta[j,k] <- theta[j,k]*gamma[j,k]
+    }
+  }
+
+  for (j in 1:n.dim) {
+    pi[j] ~ dunif (0 ,1)
+    p[j,1:M] ~ ddirch(a.p[j,])
+    for (m in 1:M) {
+      a.p[j,m] <- 1.0/M
+    }
+  }
+
+  ## prior for tau.y
+  ##
+  tau.y ~ dgamma(1,1)
+
+  ## Prior for tausq
+  ##
+  tau ~ dgamma(1,1)
+}

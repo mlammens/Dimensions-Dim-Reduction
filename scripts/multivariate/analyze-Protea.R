@@ -24,9 +24,16 @@
 
 rm(list=ls())
 
-covars <- c("pptcon", "summer", "map", "mat", "tminave07c", "tmaxave01c", "P_Bray_II_mg_kg",
+## covars <- c("pptcon", "summer", "map", "mat", "tminave07c", "tmaxave01c", "P_Bray_II_mg_kg",
+##             "alt")
+## response <- c("d13C_12C", "Percent_N", "LMA","Wood_density","area_lam","lam_width")
+covars <- c("ratio.x","map","mat","tminave07c","tmaxave01c","P_Bray_II_mg_kg",
+            "K_Exchangeable_cations_cmol_kg", "Ca_Exchangeable_cations_cmol_kg",
+            "C", "temp_win", "temp_spr", "temp_sum", "temp_aut",
+            "rain_win", "rain_spr", "rain_sum", "rain_aut",
+            "apan_win", "apan_spr", "apan_sum", "apan_aut",
             "alt")
-response <- c("d13C_12C", "Percent_N", "LMA","Wood_density","area_lam","lam_width")
+response <- c("LMA")
 
 is.complete <- function(x) {
   return(sum(is.na(x)) == 0)
@@ -43,14 +50,13 @@ dim_reduce <- function(X, y,
                        use_jags_test_pars=TRUE,
                        use_jags=TRUE)
 {
-
   ## Check that X is a matrix
   if( !is.matrix( X ) ){
     X <- as.matrix( X )
   }
   ## Add intercept column to X
   X <- cbind(rep(1,nrow(x)), X)
-
+  
   ## Define model settings - number of samples
   n.samp <- nrow( X )
 
@@ -64,7 +70,11 @@ dim_reduce <- function(X, y,
 
   ## Set number of response variables
   ##
-  n.dim <- ncol( y )
+  if (is.matrix(y)) {
+    n.dim <- ncol( y )
+  } else {
+    n.dim <- 1
+  }
 
   ## Set parameters for Wishart prior
   ##
@@ -72,13 +82,22 @@ dim_reduce <- function(X, y,
   wish.nu <- nrow(Omega) + 2
 
   ## Define the variable names used for jags data
-  jags.data <-
-    c( "X", "n.samp", "M", "K", "y", "Omega", "wish.nu", "n.dim" )
+  if (is.matrix(y)) {
+    jags.data <-
+      c( "X", "n.samp", "M", "K", "y", "Omega", "wish.nu", "n.dim" )
+  } else {
+    jags.data <-
+      c( "X", "n.samp", "M", "K", "y", "n.dim" )
+  }
 
   if (use_jags) {
     library(R2jags)
 
-    model_file="scripts/multivariate/analyze-protea.jags"
+    if (is.matrix(y)) {
+      model_file="scripts/multivariate/analyze-protea.jags"
+    } else {
+      model_file="scripts/multivariate/analyze-protea-univariate.jags"
+    }
     ## Set JAGs parameters
     if( use_jags_test_pars ){
       ## Testing parameters
@@ -96,7 +115,7 @@ dim_reduce <- function(X, y,
 
     ## Make a vector of parameters to track in JAGs
     jags.par <-
-      c( "beta", "gamma", "S", "theta", "xi", "pi", "Sigma" )
+      c( "beta", "gamma", "S", "theta", "xi", "pi" )
 
     ## Run jags model
     fit <-  jags(data = jags.data,
@@ -155,6 +174,10 @@ x <- apply(x, 2, standardize)
 ## select response variables
 ##
 y <- protea[,response]
-y <- apply(y, 2, standardize)
+if (is.matrix(y)) {
+  y <- apply(y, 2, standardize)
+} else {
+  y <- standardize(y)
+}
 
 fit <- dim_reduce(x, y, use_jags_test_pars=FALSE, use_jags=TRUE)
