@@ -106,6 +106,7 @@ sim1_trait_df <- cbind( filter( prot_pel_df, genus == "Protea" ),
 sim1_fit <- vector( mode = "list" )
 
 ## Use a for loop to loop through all of the simulated traits
+system.time(
 for ( i in 1:length( sim1_trait_names ) ){ 
   
   sim1_fit[[ sim1_trait_names[ i ] ]] <-
@@ -114,7 +115,7 @@ for ( i in 1:length( sim1_trait_names ) ){
                  scale_x = TRUE, 
                  use_jags_test_pars = TRUE )
 }
-
+)
 
 
 
