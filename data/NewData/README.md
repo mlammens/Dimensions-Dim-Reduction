@@ -10,6 +10,7 @@ Protea_Trait_Data.csv--includes all trait observations from 2011-2013, raw and d
 * indicates have not measured this trait on all individuals in populations, by design
 
 Traits to use:
+
 	d13C_12C *
 	Percent_N *
 	LMA

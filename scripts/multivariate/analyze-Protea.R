@@ -96,7 +96,7 @@ dim_reduce <- function(X, y,
     if (is.matrix(y)) {
       model_file="scripts/multivariate/analyze-protea.jags"
     } else {
-      model_file="scripts/multivariate/analyze-protea-univariate.jags"
+      model_file="scripts/multivariate/analyze-Protea-univariate.jags"
     }
     ## Set JAGs parameters
     if( use_jags_test_pars ){
