@@ -24,16 +24,8 @@
 
 rm(list=ls())
 
-## covars <- c("pptcon", "summer", "map", "mat", "tminave07c", "tmaxave01c", "P_Bray_II_mg_kg",
-##             "alt")
-## response <- c("d13C_12C", "Percent_N", "LMA","Wood_density","area_lam","lam_width")
-covars <- c("ratio.x","map","mat","tminave07c","tmaxave01c","P_Bray_II_mg_kg",
-            "K_Exchangeable_cations_cmol_kg", "Ca_Exchangeable_cations_cmol_kg",
-            "C", "temp_win", "temp_spr", "temp_sum", "temp_aut",
-            "rain_win", "rain_spr", "rain_sum", "rain_aut",
-            "apan_win", "apan_spr", "apan_sum", "apan_aut",
-            "alt")
-response <- c("LMA")
+use.test.pars <- TRUE
+use.jags <- FALSE
 
 is.complete <- function(x) {
   return(sum(is.na(x)) == 0)
@@ -47,7 +39,7 @@ standardize <- function(x) {
 
 dim_reduce <- function(X, y,
                        M_add = 25,
-                       use_jags_test_pars=TRUE,
+                       use_test_pars=TRUE,
                        use_jags=TRUE)
 {
   ## Check that X is a matrix
@@ -56,7 +48,7 @@ dim_reduce <- function(X, y,
   }
   ## Add intercept column to X
   X <- cbind(rep(1,nrow(x)), X)
-  
+
   ## Define model settings - number of samples
   n.samp <- nrow( X )
 
@@ -99,7 +91,7 @@ dim_reduce <- function(X, y,
       model_file="scripts/multivariate/analyze-Protea-univariate.jags"
     }
     ## Set JAGs parameters
-    if( use_jags_test_pars ){
+    if( use_test_pars ){
       ## Testing parameters
       n.chains <- 2
       n.burnin <- 5*1000
@@ -115,7 +107,8 @@ dim_reduce <- function(X, y,
 
     ## Make a vector of parameters to track in JAGs
     jags.par <-
-      c( "beta", "gamma", "S", "theta", "xi", "pi" )
+##       c( "beta", "gamma", "S", "theta", "xi", "pi", "var.y", "var.theta" )
+    c( "beta", "gamma", "theta", "pi" )
 
     ## Run jags model
     fit <-  jags(data = jags.data,
@@ -132,22 +125,30 @@ dim_reduce <- function(X, y,
     library(rstan)
 
     model_file="scripts/multivariate/analyze-protea.stan"
+    if( use_test_pars ){
+      ## Testing parameters
+      chains <- 1
+      iter <- 100
+
+    } else {
+      ## Final model pars
+      chains <- 5
+      iter <- 2000
+    }
     fit <- stan(model_file,
                 data=list(nSamp=n.samp,
                           nDim=n.dim,
                           K=K,
-                          M=M,
                           y=y,
-                          X=X,
-                          Omega=Omega,
-                          nu=wish.nu),
+                          X=X),
                 pars=c("beta",
                        "gamma",
-                       "S",
                        "theta",
-                       "xi",
-                        "pi",
-                       "Sigma"))
+                       "pi",
+                       "Sigma",
+                       "Omega"),
+                iter=iter,
+                chains=chains)
   }
 
   ## Return the jags model fit
@@ -163,6 +164,7 @@ protea <- merge(traits, sites, by="Site_name")
 
 ## Exclude individuals with unscored traits or covariates
 ##
+source("scripts/multivariate/response-covars.R")
 select <- apply(protea[,c(covars,response)], 1, is.complete)
 protea <- protea[select,,drop=TRUE]
 
@@ -174,10 +176,10 @@ x <- apply(x, 2, standardize)
 ## select response variables
 ##
 y <- protea[,response]
-if (is.matrix(y)) {
+if (is.data.frame(y)) {
   y <- apply(y, 2, standardize)
 } else {
   y <- standardize(y)
 }
 
-fit <- dim_reduce(x, y, use_jags_test_pars=FALSE, use_jags=TRUE)
+fit <- dim_reduce(x, y, use_test_pars=use.test.pars, use_jags=use.jags)

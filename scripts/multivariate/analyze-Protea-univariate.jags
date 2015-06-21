@@ -12,7 +12,7 @@ model{
 
   for(k in 1:K) {  # K is the number of regression coefficients
     for (j in 1:n.dim) {
-      theta[j,k] <- xi[S[j,k]]
+      theta[j,k] ~ dnorm(xi[S[j,k]], tau.theta)
       S[j,k] ~ dcat(p[j,1:M])
       gamma[j,k] ~ dbern(pi[j])
       beta[j,k] <- theta[j,k]*gamma[j,k]
@@ -27,11 +27,11 @@ model{
     }
   }
 
-  ## prior for tau.y
+  ## priors for precisions
   ##
   tau.y ~ dgamma(1,1)
-
-  ## Prior for tausq
-  ##
   tau ~ dgamma(1,1)
+  tau.theta ~ dgamma(16,1)
+  var.y <- 1.0/tau.y
+  var.theta <- 1.0/tau.theta
 }

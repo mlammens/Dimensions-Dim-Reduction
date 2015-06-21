@@ -2,70 +2,59 @@ data {
   int<lower=1> nSamp;  // number of observations
   int<lower=1> nDim;   // number of response variables
   int<lower=1> K;      // number of covariates
-  int<lower=1> M;      // number of covariate categories
-  matrix[nSamp,nDim] y;
-  matrix[nSamp,K] X;
+  vector[nDim] y[nSamp];  // response vectors
+  vector[K] X[nSamp];     // covariates
 }
 
 parameters {
-  vector[K] beta[nDim];   // regression coefficients, beta[k,1] is intercept
-  simplex[K] p[nDim];
-  vector[nDim] pi;
-  vector[M] xi;
+  matrix[nDim,K] theta;
+  matrix<lower=0, upper=1>[nDim,K] gamma;  // selection probability
+  vector<lower=0, upper=1>[nDim] pi;
+  corr_matrix[nDim] Omega;   // prior correlation
+  vector<lower=0>[nDim] tau; // prior scale
 }
 
 transformed parameters {
-  matrix[nSamp,nDim] mu;
-  matrix[nDim,K] theta;
-  matrix[nDim,K] gamma;
+  vector[nDim] mu[nSamp];
+  vector[K] beta[nDim];      // regression coefficients
+  matrix[nDim,nDim] Sigma;   // error covariance
+
+  // covariate selection
+  for (i in 1:nDim) {
+    for (k in 1:K) {
+      beta[i,k] <- theta[i,k]*gamma[i,k];
+    }
+  }
 
   // predicted values
-  for (j in 1:nDim) {
-    for (i in 1:nSamp) {
-      mu[i,j] <- X[i]*beta[j];
-    }
-  }
-
-  // selection and grouping
-  for (k in 1:K) {
+  for (i in 1:nSamp) {
     for (j in 1:nDim) {
-      theta[j,k] <- xi[S[j,k]];
-      gamma[j,k] ~ bernoulli(pi[j])
-      beta[j,k] <- theta[j,k]*gamma[j,k];
+      mu[i,j] <- 0.0;
+      for (k in 1:K) {
+        mu[i,j] <- mu[i,j] + X[i,k]*beta[j,k];
+      }
     }
   }
 
-  // coefficients for Dirichlet
-  for (m in 1:M) {
-    a.p[m] <- 1.0/M;
-  }
+  Sigma <- quad_form_diag(Omega, tau);
 }
 
 model {
-  // priors
-  for (j in 1:nDim) {
-    p[j] ~ dirichlet(a.p)
+  for (i in 1:nDim) {
+    for (k in 1:K) {
+      theta[i,k] ~ normal(0.0, 1.0);
+      gamma[i,k] ~ beta(pi[i], (1-pi[i]));
+    }
+    pi[i] ~ uniform(0.0, 1.0);
   }
-  Sigma ~ wishart(nu, Omega);
-  pi ~ uniform(0.0,1.0);
 
-  for (m in 1:M) {
-    xi[m] ~ normal(0.0, 1.0);
-  }
+  tau ~ normal(0.0, 1.0);
+  Omega ~ lkj_corr(2);
 
   // likelihood
   for (i in 1:nSamp) {
-    y[i] ~ multi_normal(mu, Sigma);
+    y[i] ~ multi_normal(mu[i], Sigma);
   }
 }
 
-generated quantities {
-  int<lower=1> S[nDim,K];
-
-  for (k in 1:K) {
-    for (j in 1:nDim) {
-      S[j,k] ~ categorical(p[j])
-    }
-  }
-}
 
