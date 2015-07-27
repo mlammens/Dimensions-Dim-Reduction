@@ -58,7 +58,7 @@ jags.data <-
   c( "X", "n.samp", "M", "K", "y" )
 
 ## Set model file
-model.file <- "curtis_ghosh_example.jags"
+model.file <- "scripts/curtis_ghosh_example.jags"
 
 ## Set JAGs parameters
 if( use_jags_test_pars ){

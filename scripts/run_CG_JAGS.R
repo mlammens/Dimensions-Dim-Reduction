@@ -25,7 +25,7 @@
 run_CG_JAGS <- function( X, y, 
                          scale_x = FALSE, scale_y = FALSE,
                          M_add = 25,
-                         model_file = "curtis_ghosh_example.jags",
+                         model_file = "scripts/curtis_ghosh_example.jags",
                          use_jags_test_pars = TRUE ){
     
 
